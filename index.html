@@ -154,6 +154,11 @@ button{cursor:pointer}button:focus-visible,.cell:focus-visible{outline:3px solid
 @media(max-width:360px){.orb{width:54px;height:54px}.hrow h1{font-size:20px}.st b{font-size:13px}.st span{font-size:9px}.icgrid{grid-template-columns:repeat(6,1fr)}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
+textarea.f.op-note{min-height:140px;height:140px;font-size:16px;line-height:1.5;resize:vertical;overflow:hidden}
+.saved-note{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:14px;margin:10px 0;-webkit-user-select:text;user-select:text}
+.income-photo{display:block;max-width:100%;max-height:55dvh;width:auto;height:auto;object-fit:contain;margin:12px auto;border:2px solid var(--ink);border-radius:16px}
+.hrw .tx i{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.btn:disabled{opacity:.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -224,7 +229,7 @@ function load(){
   try{var d=JSON.parse(localStorage.getItem(KEY));if(d&&d.v===1&&Array.isArray(d.ops)){S=d;S.set=Object.assign({main:'RUB',bk:0},S.set||{});['src','wal','goal','cat'].forEach(function(k){S[k]=S[k]||[]})}}catch(e){}
   try{var r=JSON.parse(localStorage.getItem(RKEY));if(r&&r.R&&r.R.RUB){R=Object.assign({},FB,r.R);RI=r.I}}catch(e){}
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Не удалось сохранить: память заполнена')}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){toast('Не удалось сохранить: память заполнена. Убери фото или освободи место.');return false}}
 function getJSON(u){var c=new AbortController(),t=setTimeout(function(){c.abort()},9000);return fetch(u,{signal:c.signal,cache:'no-store'}).then(function(r){clearTimeout(t);if(!r.ok)throw 0;return r.json()})}
 function loadRates(force){
   if(!force&&RI.live&&RI.t&&Date.now()-RI.t<MAXAGE)return Promise.resolve();
@@ -311,11 +316,12 @@ function pageMain(){
   h+='<div class="sec"><h2>ДОХОДЫ · '+mname(ym(0)).toUpperCase()+'</h2><div class="grid">'+S.src.map(function(s){var m=mi[s.id]||{a:0,r:0};return cell('src',s,two(m.r,m.a))}).join('')+addCell('src','источник')+'</div></div>';
   h+='<div class="sec"><h2>КОШЕЛЬКИ</h2><div class="grid">'+S.wal.map(function(w){
     var b=D.bal[w.id],rs=D.res[w.id];var body=lines(b,w.cur);if(rs>0.004)body+='<u>🔒 '+fmt(rs,w.cur)+'</u>';return cell('wal',w,body)}).join('')+addCell('wal','кошелёк')+'</div>'+(S.wal.length?'<div class="hint">🔒 — отложено на цели, деньги лежат на месте.</div>':'')+'</div>';
+  h+='<div class="sec"><h2>РАСХОДЫ · '+mname(ym(0)).toUpperCase()+'</h2><div class="grid">'+S.cat.map(function(c){var m=ms[c.id]||{rub:0,aed:0};return cell('cat',c,two(m.rub,m.aed))}).join('')+addCell('cat','категория')+'</div></div>';
   h+='<div class="sec"><h2>ЦЕЛИ И ДОЛГИ</h2><div class="grid">'+S.goal.map(function(g){var gi=goalInfo(g);
     var body=gi.done?'<b>✓ готово</b>':'<b>'+fmt(gi.toSave,g.cur)+'</b><i>'+(g.cur==='RUB'?fmt(conv(gi.toSave,g.cur,'AED'),'AED',true):fmt(conv(gi.toSave,g.cur,'RUB'),'RUB',true))+'</i>';
     if(g.deadline&&!gi.done)body+='<u>до '+fds(g.deadline)+(gi.days<0?' · просрочено':'')+'</u>';
     return cell('goal',g,body,gi.pct)}).join('')+addCell('goal','цель')+'</div>'+(S.goal.length?'<div class="hint">Под кружком — сколько ещё осталось накопить. Кольцо — сколько уже отложено или выплачено.</div>':'')+'</div>';
-  h+='<div class="sec"><h2>РАСХОДЫ · '+mname(ym(0)).toUpperCase()+'</h2><div class="grid">'+S.cat.map(function(c){var m=ms[c.id]||{rub:0,aed:0};return cell('cat',c,two(m.rub,m.aed))}).join('')+addCell('cat','категория')+'</div></div>';
+
   if(S.wal.length)h+='<div class="hint" style="text-align:center;margin-top:14px">Зажми кружок дохода или кошелька и перетащи на другой. Или нажми на кружок и выбери «Перевести».</div>';
   $('pg0').innerHTML=h;
 }
@@ -410,7 +416,7 @@ function opInfo(o){
 function histRow(o,short){
   var i=opInfo(o),a=Math.abs(o.a),neutral=(o.t==='res'||o.t==='tr');
   var sg=o.t==='inc'?'+':(neutral?'':'−');
-  return '<button class="hrw" data-op="'+o.id+'"><div class="ic">'+iconH(i.ic)+'</div><div class="tx"><b>'+esc(i.tx)+'</b><i>'+fds(o.d)+(o.n?' · '+esc(o.n):'')+'</i></div><div class="am '+(o.t==='inc'?'in':'')+'"><b>'+sg+fmt(a,i.cur)+'</b><i>'+bothTxt(a,i.cur).replace('≈ ','')+'</i></div></button>';
+  return '<button class="hrw" data-op="'+o.id+'"><div class="ic">'+iconH(i.ic)+'</div><div class="tx"><b>'+esc(i.tx)+'</b><i>'+fds(o.d)+(o.photo?' · 📷':'')+(o.n?' · '+esc(o.n):'')+'</i></div><div class="am '+(o.t==='inc'?'in':'')+'"><b>'+sg+fmt(a,i.cur)+'</b><i>'+bothTxt(a,i.cur).replace('≈ ','')+'</i></div></button>';
 }
 var jLimit=60;
 function pageJournal(){
@@ -427,6 +433,26 @@ function closeSheet(){$('bg').classList.remove('show');if(document.activeElement
 function kindName(k){return{src:'источник',wal:'кошелёк',goal:'цель',cat:'категорию'}[k]}
 
 /* --- сумма --- */
+function photoHTML(data){return typeof data==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(data)?'<img class="income-photo" src="'+esc(data)+'" alt="Фото к записи дохода">':''}
+function compressPhoto(file){
+  return new Promise(function(resolve,reject){
+    if(file.type&&file.type.indexOf('image/')!==0){reject(new Error('image required'));return}
+    var url=URL.createObjectURL(file),img=new Image(),done=false;
+    var timer=setTimeout(function(){finish(new Error('timeout'))},20000);
+    function finish(error,data){if(done)return;done=true;clearTimeout(timer);URL.revokeObjectURL(url);if(error)reject(error);else resolve(data)}
+    img.onerror=function(){finish(new Error('decode'))};
+    img.onload=function(){try{
+      var scale=Math.min(1,720/Math.max(img.naturalWidth,img.naturalHeight)),canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      var ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      var quality=.78,data=canvas.toDataURL('image/jpeg',quality);
+      while(data.length>180000&&quality>.35){quality-=.1;data=canvas.toDataURL('image/jpeg',quality)}
+      if(data.length>220000){var small=document.createElement('canvas');small.width=Math.max(1,Math.round(canvas.width*.65));small.height=Math.max(1,Math.round(canvas.height*.65));small.getContext('2d').drawImage(canvas,0,0,small.width,small.height);data=small.toDataURL('image/jpeg',.55)}
+      finish(null,data);
+    }catch(error){finish(error)}};img.src=url;
+  });
+}
+
 function amountSheet(sk,sid,dk,did,mode0){
   var src=find(sk,sid),dst=find(dk,did);if(!src||!dst)return;
   var mode=mode0||(dk==='goal'?'res':dk==='cat'?'exp':sk==='src'?'inc':'tr');
@@ -438,10 +464,23 @@ function amountSheet(sk,sid,dk,did,mode0){
   h+='<div class="big" id="aP" style="font-size:14px;color:var(--mut)">≈</div>';
   if(dk==='wal'&&sk==='wal'&&dst.cur!==src.cur)h+='<label>ПОЛУЧИТ, '+CUR[dst.cur].f+' '+CUR[dst.cur].n.toUpperCase()+' (можно поправить по курсу обменника)</label><input class="f" id="aB" inputmode="decimal" placeholder="0">';
   h+='<div class="sub" id="aInfo" style="margin-top:8px"></div>';
-  h+='<div class="two"><div><label>ДАТА</label><input class="f" id="aD" type="date" value="'+today()+'"></div><div><label>ЗАМЕТКА</label><input class="f" id="aN" placeholder="необязательно" maxlength="60"></div></div>';
+  h+='<label for="aD">ДАТА</label><input class="f" id="aD" type="date" value="'+today()+'">';
+  h+='<label for="aN">ЗАМЕТКА</label><textarea class="f op-note" id="aN" rows="5" placeholder="От кого пришли деньги, за что и другие подробности…"></textarea>';
+  if(mode==='inc')h+='<label>ФОТО К ДОХОДУ</label><input type="file" id="aPhoto" accept="image/*" hidden><button type="button" class="btn alt sm" id="aPhotoAdd">📷 Добавить фотографию</button><div id="aPhotoStatus" class="sub" role="status" aria-live="polite"></div><div id="aPhotoPreview"></div><button type="button" class="btn del hide" id="aPhotoRemove">Убрать фото</button>';
   h+='<button class="btn" id="aS">Сохранить</button><button class="btn del" id="aC">Отмена</button>';
   openSheet(h);
-  var editedB=false;
+  var editedB=false,photo='',photoBusy=false,photoRequest=0;
+  var note=$('aN');note.addEventListener('input',function(){note.style.height='auto';note.style.height=Math.max(140,note.scrollHeight+4)+'px'});
+  if($('aPhoto')){
+    var photoInput=$('aPhoto'),photoStatus=$('aPhotoStatus'),photoPreview=$('aPhotoPreview'),photoRemove=$('aPhotoRemove'),photoAdd=$('aPhotoAdd'),saveButton=$('aS');
+    photoAdd.onclick=function(){photoInput.click()};
+    photoRemove.onclick=function(){photoRequest++;photo='';photoBusy=false;photoInput.value='';photoPreview.innerHTML='';photoStatus.textContent='';photoRemove.classList.add('hide');photoAdd.textContent='📷 Добавить фотографию';saveButton.disabled=false};
+    photoInput.onchange=function(){
+      var file=photoInput.files[0];if(!file)return;
+      var request=++photoRequest;photoBusy=true;saveButton.disabled=true;photoStatus.textContent='Подготавливаю фото…';
+      compressPhoto(file).then(function(data){if(request!==photoRequest)return;photo=data;photoPreview.innerHTML=photoHTML(photo);photoRemove.classList.remove('hide');photoAdd.textContent='📷 Заменить фотографию';photoStatus.textContent='Фото добавлено';}).catch(function(){if(request===photoRequest)photoStatus.textContent='Не удалось открыть фото. Выбери JPG, PNG или снимок экрана.';}).finally(function(){if(request===photoRequest){photoBusy=false;saveButton.disabled=false;photoInput.value=''}});
+    };
+  }
   function upd(){
     var a=parse($('aA').value),ok=isFinite(a)&&a>0;
     var cur=ac;
@@ -459,9 +498,10 @@ function amountSheet(sk,sid,dk,did,mode0){
   document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){mode=b.getAttribute('data-m');document.querySelectorAll('.seg button').forEach(function(x){x.classList.toggle('on',x===b)});upd()}});
   $('aC').onclick=closeSheet;upd();setTimeout(function(){$('aA').focus()},60);
   $('aS').onclick=function(){
+    if(photoBusy){toast('Подожди, фото ещё загружается');return}
     var a=parse($('aA').value);if(!isFinite(a)||a<=0){toast('Впиши сумму');return}a=r2(a);
     var o={id:uid(),t:mode,w:wal.id,x:dst.id,a:a,d:$('aD').value||today(),n:$('aN').value.trim()};
-    if(mode==='inc'){o.x=src.id;o.w=dst.id}
+    if(mode==='inc'){o.x=src.id;o.w=dst.id;if(photo)o.photo=photo}
     if(mode==='tr'){o.w=src.id;o.x=dst.id;o.b=r2(parse($('aB')?$('aB').value:a));if(!isFinite(o.b)||o.b<=0)o.b=a}
     if(mode==='exp'){o.w=src.id;o.x=dst.id}
     if(mode==='res'||mode==='pay'){o.w=src.id;o.x=dst.id;o.b=r2(conv(a,src.cur,dst.cur));
@@ -469,7 +509,7 @@ function amountSheet(sk,sid,dk,did,mode0){
       if(mode==='pay'){var rw=Math.max(0,D.rwg[src.id+'|'+dst.id]||0);o.r=r2(Math.min(a,rw));o.rb=r2(o.r*(o.b/a))}}
     var w0=find('wal',o.w);o.aed=r2(conv(a,w0.cur,'AED'));o.rub=r2(conv(a,w0.cur,'RUB'));
     if(mode==='inc'){o.aed=r2(conv(a,dst.cur,'AED'));o.rub=r2(conv(a,dst.cur,'RUB'))}
-    S.ops.push(o);save();render();closeSheet();
+    S.ops.push(o);if(!save()){S.ops.pop();return}render();closeSheet();
     toast(mode==='res'?'Отложено 🔒':mode==='pay'?'Записано ✓':'Сохранено ✓');
   };
 }
@@ -522,7 +562,7 @@ function unreserve(wid,gid){
 /* --- журнал: операция --- */
 function opSheet(id){
   var o=S.ops.filter(function(x){return x.id===id})[0];if(!o)return;var i=opInfo(o);
-  openSheet('<h2>'+esc(i.tx)+'</h2><div class="sub">'+fd(o.d)+(o.n?' · '+esc(o.n):'')+'</div><div class="big"><b>'+fmt(Math.abs(o.a),i.cur)+'</b><i>'+bothTxt(Math.abs(o.a),i.cur)+'</i></div><div class="sub">Если ошиблась суммой, удали запись и добавь заново — все итоги пересчитаются.</div><button class="btn del" id="oD" style="font-size:16px">🗑 Удалить запись</button><button class="btn alt" id="oC">Закрыть</button>');
+  openSheet('<h2>'+esc(i.tx)+'</h2><div class="sub">'+fd(o.d)+'</div>'+(o.n?'<div class="saved-note">'+esc(o.n)+'</div>':'')+photoHTML(o.photo)+'<div class="big"><b>'+fmt(Math.abs(o.a),i.cur)+'</b><i>'+bothTxt(Math.abs(o.a),i.cur)+'</i></div><div class="sub">Если ошиблась суммой, удали запись и добавь заново — все итоги пересчитаются.</div><button class="btn del" id="oD" style="font-size:16px">🗑 Удалить запись</button><button class="btn alt" id="oC">Закрыть</button>');
   $('oC').onclick=closeSheet;$('oD').onclick=function(){if(confirm('Удалить эту запись?')){S.ops=S.ops.filter(function(x){return x.id!==id});save();render();closeSheet()}}
 }
 
