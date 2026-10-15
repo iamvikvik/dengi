@@ -178,6 +178,21 @@ button:focus-visible,.cell:focus-visible{outline:3px solid var(--lav2);outline-o
 @media(min-width:700px){body{max-width:620px;margin:0 auto}html{background:#f6e8ef}.orb{width:60px;height:60px}.cell .nm{font-size:12px}.amt b{font-size:12.5px}.amt i{font-size:11px}}
 @media(max-width:350px){.orb{width:44px;height:44px}.bl b{font-size:21px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* строка кошельков со свайпом */
+.grid.hs{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:calc(100% / 5.45);overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.grid.hs::-webkit-scrollbar{display:none}
+.grid.hs .cell{scroll-snap-align:start}
+/* порядок значков */
+.sh small.e{flex:1}.sh small.e:before{content:""}
+.sh small{flex:1}
+.ordb{flex:none;border:0;background:#f7eef3;color:#b77a98;width:26px;height:22px;border-radius:8px;font-size:13px;font-weight:800;padding:0;margin-left:auto}
+body.ordering .ordb{background:var(--pink);color:#fff}
+body.ordering .cell[data-k] .orb{animation:wig .32s ease-in-out infinite alternate}
+body.ordering .cell[data-k]:nth-child(2n) .orb{animation-delay:-.16s}
+@keyframes wig{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+body.ordering .cell.sel .orb{animation:none;transform:scale(1.1);box-shadow:0 0 0 3px var(--pink),0 6px 12px rgba(240,56,139,.3)}
+body.ordering .cell.add{opacity:.35}
+body.dragging .grid.hs{scroll-snap-type:none}
 </style>
 </head>
 <body>
@@ -392,20 +407,20 @@ function backupBanner(){
   var days=S.set.bk?Math.floor((Date.now()-S.set.bk)/86400000):999;
   return days>=7?'<div class="alert" id="bkAlert">💾 '+(S.set.bk?'Копию данных делали '+days+' дн. назад.':'Копию данных ещё не делали.')+' Нажми, чтобы сохранить.</div>':'';
 }
-function secH(ic,t,sub){return '<div class="sh"><span class="si">'+ic+'</span><h2>'+t+'</h2>'+(sub?'<small>'+sub+'</small>':'')+'</div>'}
+function secH(ic,t,sub){return '<div class="sh"><span class="si">'+ic+'</span><h2>'+t+'</h2>'+(sub?'<small>'+sub+'</small>':'<small class="e"></small>')+'<button class="ordb" aria-label="Поменять порядок">⇄</button></div>'}
 function walBody(w){var b=D.bal[w.id],rs=D.res[w.id],o=w.cur==='RUB'?'AED':w.cur==='AED'?'RUB':S.set.main;
   var h='<b'+(b<0?' class="neg"':'')+'>'+fmt(b,w.cur,true)+'</b><i>'+fmt(conv(b,w.cur,o),o,true)+'</i>';if(rs>0.004)h+='<u>🔒 '+fmt(rs,w.cur,true)+'</u>';return h}
 function pageMain(){
   var h=backupBanner(),mn=mname(ym(0));
   var ms=catSums('m0'),mi={};S.ops.forEach(function(o){if(o.t==='inc'&&inPeriod(o,'m0')){var c=mi[o.x]||(mi[o.x]={a:0,r:0});c.a+=o.aed;c.r+=o.rub}});
   h+='<div class="sec s-in">'+secH('💗','Доходы',mn)+'<div class="grid">'+S.src.map(function(s){var m=mi[s.id]||{a:0,r:0};return cell('src',s,two(m.r,m.a))}).join('')+addCell('src','доход')+'</div></div>';
-  h+='<div class="sec s-wal">'+secH('💳','Кошельки')+'<div class="grid">'+S.wal.map(function(w){return cell('wal',w,walBody(w))}).join('')+addCell('wal','кошелёк')+'</div></div>';
+  h+='<div class="sec s-wal">'+secH('💳','Кошельки')+'<div class="grid hs">'+S.wal.map(function(w){return cell('wal',w,walBody(w))}).join('')+addCell('wal','кошелёк')+'</div></div>';
   h+='<div class="sec s-cat">'+secH('🛍️','Расходы',mn)+'<div class="grid">'+S.cat.map(function(c){var m=ms[c.id]||{rub:0,aed:0};return cell('cat',c,two(m.rub,m.aed))}).join('')+addCell('cat','категория')+'</div></div>';
-  h+='<div class="sec s-save">'+secH('💪','Не потратила','перетащи сумму, если удержалась')+'<div class="grid">'+S.save.map(function(c){return cell('save',c,'')}).join('')+addCell('save','ещё')+'</div></div>';
   h+='<div class="sec s-goal">'+secH('🎯','Цели и долги')+'<div class="grid">'+S.goal.map(function(g){var gi=goalInfo(g);
     var body=gi.nosum?'<i class="ask">укажи сумму</i>':gi.done?'<b>✓ готово</b>':'<b>'+fmt(gi.toSave,g.cur,true)+'</b><i>'+(g.cur==='RUB'?fmt(conv(gi.toSave,g.cur,'AED'),'AED',true):fmt(conv(gi.toSave,g.cur,'RUB'),'RUB',true))+'</i>';
     if(g.deadline&&!gi.done&&!gi.nosum)body+='<u>до '+fds(g.deadline)+(gi.days<0?' · просрочено':'')+'</u>';
     return cell('goal',g,body,gi.pct)}).join('')+addCell('goal','цель')+'</div></div>';
+  h+='<div class="sec s-save">'+secH('💪','Не потратила','перетащи сумму, если удержалась')+'<div class="grid">'+S.save.map(function(c){return cell('save',c,'')}).join('')+addCell('save','ещё')+'</div></div>';
   if(S.wal.length)h+='<div class="hint c">Зажми кружок и перетащи на другой · или нажми и выбери «Перевести». 🔒 — отложено на цели.</div>';
   $('pg0').innerHTML=h;
 }
@@ -730,10 +745,14 @@ function quickStart(){S.set.v2=0;migrate();save();render();toast('Готово!'
 }
 
 /* ================= перетаскивание ================= */
-function validT(sk,dk){return(sk==='src'&&dk==='wal')||(sk==='wal'&&(dk==='wal'||dk==='cat'||dk==='goal'||dk==='save'))}
+function validT(sk,dk){if(ord)return sk===dk;return(sk==='src'&&dk==='wal')||(sk==='wal'&&(dk==='wal'||dk==='cat'||dk==='goal'||dk==='save'))}
 function cellAt(x,y){var els=document.elementsFromPoint(x,y);for(var i=0;i<els.length;i++){var c=els[i].closest&&els[i].closest('.cell[data-k]');if(c)return c}return null}
 function hit(x,y){var k=st.c.dataset.k,a=cellAt(x,y-39),b=cellAt(x,y);function ok(c){return c&&c!==st.c&&validT(k,c.dataset.k)}return ok(a)?a:ok(b)?b:null}
-var st=null,ghost=null,scrollT=null,lastY=0;
+var st=null,ghost=null,scrollT=null,lastY=0,lastX=0,ord=false,osel=null;
+function moveItem(k,sid,did){var a=S[k],f=-1,t=-1;a.forEach(function(x,i){if(x.id===sid)f=i;if(x.id===did)t=i});if(f<0||t<0||f===t)return;var it=a.splice(f,1)[0];a.splice(t,0,it);save();render();if(navigator.vibrate)try{navigator.vibrate(8)}catch(e){}}
+function ordBanner(){$('bannerT').textContent=osel?'Теперь нажми, куда поставить':'Перетащи кружок на новое место или нажми на два по очереди';$('bannerX').textContent='Готово'}
+function setOrd(on){ord=on;osel=null;document.body.classList.toggle('ordering',on);document.querySelectorAll('.cell.sel').forEach(function(c){c.classList.remove('sel')});
+  if(on){ordBanner();$('banner').classList.add('show')}else{$('banner').classList.remove('show');$('bannerX').textContent='Отмена'}}
 function begin(x,y){
   st.on=true;document.body.classList.add('dragging');
   var o=st.c.querySelector('.orb');ghost=document.createElement('div');ghost.className='dghost';ghost.appendChild(o.cloneNode(true));ghost.firstChild.style.setProperty('--c',st.c.querySelector('.orbw').style.getPropertyValue('--c'));document.body.appendChild(ghost);
@@ -741,9 +760,10 @@ function begin(x,y){
   document.querySelectorAll('#pg0 .cell[data-k]').forEach(function(c){if(c!==st.c&&validT(sk,c.dataset.k))c.classList.add('tgt')});
   if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
   mv(x,y);
-  scrollT=setInterval(function(){var p=$('pg0');if(lastY>innerHeight-120)p.scrollTop+=9;else if(lastY<190)p.scrollTop-=9},16);
+  scrollT=setInterval(function(){var p=$('pg0');if(lastY>innerHeight-120)p.scrollTop+=9;else if(lastY<190)p.scrollTop-=9;
+    document.querySelectorAll('#pg0 .hs').forEach(function(r){var b=r.getBoundingClientRect(),yy=lastY-39;if(yy<b.top-10||yy>b.bottom+10)return;if(lastX>b.right-44)r.scrollLeft+=7;else if(lastX<b.left+44)r.scrollLeft-=7})},16);
 }
-function mv(x,y){lastY=y;ghost.style.transform='translate('+(x-27)+'px,'+(y-66)+'px) scale(1.15)';
+function mv(x,y){lastY=y;lastX=x;ghost.style.transform='translate('+(x-27)+'px,'+(y-66)+'px) scale(1.15)';
   document.querySelectorAll('.cell.hov').forEach(function(c){c.classList.remove('hov')});
   var c=hit(x,y);if(c)c.classList.add('hov')}
 function end(x,y,cancel){
@@ -753,14 +773,14 @@ function end(x,y,cancel){
     document.body.classList.remove('dragging');sc.classList.remove('lift');if(ghost){ghost.remove();ghost=null}
     document.querySelectorAll('.cell.tgt,.cell.hov').forEach(function(e){e.classList.remove('tgt','hov')});
     swallow=Date.now()+450;
-    if(c&&c!==sc&&validT(sc.dataset.k,c.dataset.k))amountSheet(sc.dataset.k,sc.dataset.id,c.dataset.k,c.dataset.id);
+    if(c&&c!==sc&&validT(sc.dataset.k,c.dataset.k)){if(ord)moveItem(sc.dataset.k,sc.dataset.id,c.dataset.id);else amountSheet(sc.dataset.k,sc.dataset.id,c.dataset.k,c.dataset.id)}
   }
   st=null;
 }
 function bindDrag(){
   var root=$('pg0');
   root.addEventListener('touchstart',function(e){
-    if(st)return;var c=e.target.closest('.cell[data-k]');if(!c||(c.dataset.k!=='src'&&c.dataset.k!=='wal'))return;
+    if(st)return;var c=e.target.closest('.cell[data-k]');if(!c||(!ord&&c.dataset.k!=='src'&&c.dataset.k!=='wal'))return;
     var t=e.touches[0];st={c:c,x:t.clientX,y:t.clientY,on:false,touch:true};st.tm=setTimeout(function(){if(st&&!st.on)begin(st.x,st.y)},260);
   },{passive:true});
   document.addEventListener('touchmove',function(e){
@@ -771,7 +791,7 @@ function bindDrag(){
   document.addEventListener('touchend',function(e){if(!st||!st.touch)return;if(st.on){e.preventDefault();var t=e.changedTouches[0];end(t.clientX,t.clientY)}else{clearTimeout(st.tm);st=null}},{passive:false});
   document.addEventListener('touchcancel',function(){if(st&&st.touch)end(0,0,true)});
   root.addEventListener('mousedown',function(e){
-    if(st||e.button!==0)return;var c=e.target.closest('.cell[data-k]');if(!c||(c.dataset.k!=='src'&&c.dataset.k!=='wal'))return;
+    if(st||e.button!==0)return;var c=e.target.closest('.cell[data-k]');if(!c||(!ord&&c.dataset.k!=='src'&&c.dataset.k!=='wal'))return;
     st={c:c,x:e.clientX,y:e.clientY,on:false,touch:false};
   });
   document.addEventListener('mousemove',function(e){
@@ -793,12 +813,17 @@ function bind(){
     if(Date.now()<swallow)return;
     if(e.target.closest('#bkAlert')){settingsSheet();return}
     if(e.target.closest('#quick')){quickStart();return}
+    if(e.target.closest('.ordb')){setOrd(!ord);return}
+    if(ord){var oc=e.target.closest('.cell[data-k]');if(!oc)return;
+      if(osel&&osel.k===oc.dataset.k&&osel.id!==oc.dataset.id){moveItem(osel.k,osel.id,oc.dataset.id);osel=null;ordBanner();return}
+      document.querySelectorAll('.cell.sel').forEach(function(c){c.classList.remove('sel')});
+      if(osel&&osel.id===oc.dataset.id){osel=null}else{osel={k:oc.dataset.k,id:oc.dataset.id};oc.classList.add('sel')}ordBanner();return}
     var a=e.target.closest('[data-add]');if(a&&!pick){itemSheet(a.getAttribute('data-add'));return}
     var c=e.target.closest('.cell[data-k]');if(!c)return;var k=c.dataset.k,id=c.dataset.id;
     if(pick){var p=pick;if(validT(p.k,k)&&!(p.k===k&&p.id===id)){endPick();amountSheet(p.k,p.id,k,id)}else endPick();return}
     detailSheet(k,id);
   });
-  $('bannerX').onclick=endPick;
+  $('bannerX').onclick=function(){if(ord)setOrd(false);else endPick()};
   $('gear').onclick=settingsSheet;
   $('stats').addEventListener('click',function(e){var b=e.target.closest('[data-m]');if(!b)return;S.set.main=b.getAttribute('data-m');save();render()});
   $('bg').addEventListener('click',function(e){if(e.target===$('bg'))closeSheet()});
