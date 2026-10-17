@@ -475,7 +475,7 @@ function stats(){
   $('stats').innerHTML=blk(L('Баланс','Balance'),bal,balA,fr)+blk(L('Расходы','Spent')+' · '+mname(ym(0)),er,ea);
 }
 function fit(){
-  document.querySelectorAll('#stats .bv').forEach(function(e){var s=26;e.style.fontSize=s+'px';var w=e.parentNode.clientWidth;while(e.scrollWidth>w&&s>14){s-=1;e.style.fontSize=s+'px'}});
+  document.querySelectorAll('#stats .bv').forEach(function(e){var s=19;e.style.fontSize=s+'px';var w=e.parentNode.clientWidth;while(e.scrollWidth>w&&s>12){s-=1;e.style.fontSize=s+'px'}});
 }
 function cell(k,it,body,ring){
   var pr=ring!=null?'--p:'+ring+';':'';
