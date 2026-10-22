@@ -155,6 +155,17 @@ select.f{appearance:none;-webkit-appearance:none}
 .sw{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .sw button{width:32px;height:32px;border-radius:50%;border:0;box-shadow:var(--sh2)}
 .sw button.on{outline:3px solid var(--ink);outline-offset:2px}
+.pav{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ecdccb,#d9c1a9);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:var(--ink);overflow:hidden;flex:none;box-shadow:var(--sh2)}
+.pav img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.pav.big{width:64px;height:64px;font-size:26px}
+.ppl-row{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 4px;scrollbar-width:none}
+.pbtn{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;font:inherit;color:var(--mut);width:64px;padding:0}
+.pbtn i{font-style:normal;font-size:11px;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pbtn.on .pav{box-shadow:0 0 0 3px var(--ink)}
+.pbtn.on i{color:var(--ink);font-weight:700}
+.pbtn.add .pav{background:rgba(36,38,56,.08);font-size:22px}
+.pform{display:flex;gap:12px;align-items:flex-start;margin-top:8px}.pph{border:0;background:none;padding:0;flex:none}
+.hrw .ic.pp{background:none;font-size:15px;font-weight:700}
 .pvw{display:flex;align-items:center;gap:12px}.pvw .orb{flex:none}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:13.5px;font-weight:500;color:var(--ink);letter-spacing:0;line-height:1.35}
 .chk input{width:22px;height:22px;accent-color:var(--ink);flex:none;margin-top:1px}
@@ -256,7 +267,7 @@ var R=Object.assign({},FB),RI={date:'2026-10-10',live:false,t:0};
 var COLORS=['#E9D5C3','#F2C9B0','#D9CFEA','#CFE3DA','#F0D2DC','#C9DDEB','#EBDDB0','#E7B8A8'];
 var DEF={src:'#F2C9B0',wal:'#D9CFEA',goal:'#CFE3DA',cat:'#E9D5C3'};
 var S=blank(),D={},swallow=0,pick=null,period='m0',LANG='ru';
-function blank(){return{v:1,set:{main:'RUB',bk:0,lang:'ru',per:'day'},src:[],wal:[],goal:[],cat:[],save:[],ops:[]}}
+function blank(){return{v:1,set:{main:'RUB',bk:0,lang:'ru',per:'day'},src:[],wal:[],goal:[],cat:[],save:[],ppl:[],ops:[]}}
 function L(ru,en){return LANG==='en'?en:ru}
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -289,7 +300,7 @@ function sum2(aed){return fmt(aed,'AED',true)+' (≈ '+fmt(aed*R.RUB/R.AED,'RUB'
 function dayDiff(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000)}
 
 /* ================= хранение ================= */
-function normalize(){S.set=Object.assign({main:'RUB',bk:0,lang:'ru',per:'day'},S.set||{});['src','wal','goal','cat','save'].forEach(function(k){S[k]=S[k]||[]})}
+function normalize(){S.set=Object.assign({main:'RUB',bk:0,lang:'ru',per:'day'},S.set||{});['src','wal','goal','cat','save'].forEach(function(k){S[k]=S[k]||[]});if(!Array.isArray(S.ppl))S.ppl=[]}
 function load(){
   try{var d=JSON.parse(localStorage.getItem(KEY));if(d&&d.v===1&&Array.isArray(d.ops)){S=d}}catch(e){}
   normalize();migrate();LANG=S.set.lang==='en'?'en':'ru';
@@ -356,6 +367,37 @@ function starterSet(){
   PLAN.cat.forEach(function(p,i){S.cat.push({id:uid()+'c'+i,name:p[0],en:p[1],icon:'i:'+p[2],color:DEF.cat,want:!!p[3]})});
   PLAN.goal.forEach(function(p,i){S.goal.push({id:uid()+'g'+i,name:p[0],en:p[1],icon:'i:'+p[2],color:DEF.goal,type:p[3],cur:p[4],target:0,deadline:''})});
   save();render();
+}
+/* ===== люди: круглые фото ===== */
+function rtS(v){return String(parseFloat(v.toPrecision(5))).replace('.',',')}
+function pplById(id){return(S.ppl||[]).filter(function(p){return p.id===id})[0]}
+function pAvIn(p){return p.photo&&/^data:image\/(jpeg|png|webp);base64,/.test(p.photo)?'<img src="'+esc(p.photo)+'" alt="" draggable="false">':esc(((p.name||'?').trim().charAt(0)||'?').toUpperCase())}
+function pplWidget(box,st){
+  var form=null;
+  function draw(){
+    var h='<div class="ppl-row">'+S.ppl.map(function(p){return '<button type="button" class="pbtn'+(st.sel===p.id?' on':'')+'" data-p="'+p.id+'"><span class="pav">'+pAvIn(p)+'</span><i>'+esc(p.name||'')+'</i></button>'}).join('')+'<button type="button" class="pbtn add" data-p="+"><span class="pav">＋</span><i>'+L('Новый','New')+'</i></button></div>';
+    if(st.sel&&!form&&pplById(st.sel))h+='<div class="sub" style="margin:4px 0 0"><button type="button" class="chip sm" data-pe="1">✎ '+L('Изменить','Edit')+'</button> <button type="button" class="chip sm" data-pn="1">✕ '+L('Не выбирать','Clear')+'</button></div>';
+    if(form)h+='<div class="pform"><button type="button" class="pph" data-pph="1"><span class="pav big">'+(form.photo?pAvIn({photo:form.photo,name:form.name}):'📷')+'</span></button><div style="flex:1;min-width:0"><input class="f" id="pfN" maxlength="30" placeholder="'+L('Имя (необязательно)','Name (optional)')+'" value="'+esc(form.name)+'"><div class="two"><button type="button" class="btn sm" data-pok="1">'+L('Готово','Done')+'</button><button type="button" class="btn alt sm" data-pcx="1">'+L('Отмена','Cancel')+'</button></div>'+(form.id?'<button type="button" class="btn del sm" data-pdl="1">'+L('Удалить человека','Delete person')+'</button>':'')+'</div></div><div class="sub" style="margin:2px 0 0">'+L('Нажми на кружок, чтобы выбрать фото из галереи и обрезать его по кругу.','Tap the circle to pick a photo from the gallery and crop it.')+'</div>';
+    box.innerHTML=h;
+    box.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){var id=b.getAttribute('data-p');if(id==='+'){form={id:'',name:'',photo:''}}else{st.sel=st.sel===id?'':id;form=null}draw()}});
+    function q(a){return box.querySelector('['+a+']')}
+    var e=q('data-pe');if(e)e.onclick=function(){var p=pplById(st.sel);if(p){form={id:p.id,name:p.name||'',photo:p.photo||''};draw()}};
+    var n=q('data-pn');if(n)n.onclick=function(){st.sel='';draw()};
+    var ph=q('data-pph');if(ph)ph.onclick=function(){var nn=$('pfN');if(nn)form.name=nn.value;pickImage(function(d){form.photo=d;draw()})};
+    var cx=q('data-pcx');if(cx)cx.onclick=function(){form=null;draw()};
+    var ok=q('data-pok');if(ok)ok.onclick=function(){var name=($('pfN').value||'').trim();if(!name&&!form.photo){toast(L('Добавь фото или имя','Add a photo or a name'));return}
+      var p=form.id?pplById(form.id):null;if(p){p.name=name;p.photo=form.photo}else{p={id:uid(),name:name,photo:form.photo};S.ppl.push(p)}
+      st.sel=p.id;if(!save())return;form=null;draw();render()};
+    var dl=q('data-pdl');if(dl)dl.onclick=function(){if(!confirm(L('Удалить человека? Операции останутся, но без фото.','Delete this person? Entries stay, without the photo.')))return;S.ppl=S.ppl.filter(function(x){return x.id!==form.id});if(st.sel===form.id)st.sel='';form=null;save();draw();render()};
+  }
+  draw();
+}
+function personPick(o){
+  var st={sel:o.pid||''};
+  openSheet('<h2>'+L('От кого','From')+'</h2><div id="pw"></div><button class="btn" id="pS">'+L('Сохранить','Save')+'</button><button class="btn alt" id="pX">'+L('Назад','Back')+'</button>');
+  pplWidget($('pw'),st);
+  $('pX').onclick=function(){opSheet(o.id)};
+  $('pS').onclick=function(){if(st.sel)o.pid=st.sel;else delete o.pid;if(!save())return;render();opSheet(o.id)};
 }
 /* ===== своя картинка: круглая обрезка с зумом ===== */
 function pickImage(cb){var f=$('file');f.value='';f.onchange=function(){var x=f.files&&f.files[0];if(x)cropper(x,cb)};f.click()}
@@ -639,7 +681,11 @@ function opAmt(o){
 function histRow(o,nod){
   var i=opInfo(o),am=opAmt(o),a=Math.abs(am.v),signed=(o.t==='adj'||o.t==='cadj'||o.t==='iadj'||o.t==='gadj');
   var sg=o.t==='inc'?'+':(signed?(am.v<0?'−':'+'):(i.neu?'':'−'));
-  return '<button class="hrw '+i.cls+'" data-op="'+o.id+'"><div class="ic">'+iconH(i.ic)+'</div><div class="tx"><b>'+esc(i.tx)+'</b><i>'+(nod?'':fds(o.d))+(o.photo?(nod?'':' · ')+'📷':'')+(o.n?(nod&&!o.photo?'':' · ')+esc(o.n):'')+'</i></div><div class="am '+(o.t==='inc'?'in':'')+'"><b>'+sg+fmt(a,am.cur,true)+'</b><i>'+bothTxt(a,am.cur).replace('≈ ','')+'</i></div></button>';
+  var pp=o.pid?pplById(o.pid):null,parts=[];
+  if(!nod)parts.push(fds(o.d));if(pp&&pp.name)parts.push(esc(pp.name));if(o.photo)parts.push('📷');
+  if(o.t==='tr'&&i.w&&i.x&&i.w.cur!==i.x.cur&&o.b>0&&o.a>0)parts.push(L('курс ','rate ')+rtS(o.b/o.a));
+  if(o.n)parts.push(esc(o.n));
+  return '<button class="hrw '+i.cls+'" data-op="'+o.id+'"><div class="ic'+(pp?' pp':'')+'">'+(pp?pAvIn(pp):iconH(i.ic))+'</div><div class="tx"><b>'+esc(i.tx)+'</b><i>'+parts.join(' · ')+'</i></div><div class="am '+(o.t==='inc'?'in':'')+'"><b>'+sg+fmt(a,am.cur,true)+'</b><i>'+bothTxt(a,am.cur).replace('≈ ','')+'</i></div></button>';
 }
 function jMatch(o){
   if(o.t==='skip')return false;
@@ -696,15 +742,16 @@ function amountSheet(sk,sid,dk,did,mode0){
   if(dk==='goal'){h+='<div class="seg"><button data-m="res" class="'+(mode==='res'?'on':'')+'">🔒 '+L('Отложить','Set aside')+'</button><button data-m="pay" class="'+(mode==='pay'?'on':'')+'">'+(dst.type==='debt'?'🤝 '+L('Вернула','Repaid'):'✅ '+L('Оплатила','Paid'))+'</button></div><div class="sub" id="mhint"></div>'}
   h+='<label>'+L('СУММА, ','AMOUNT, ')+CUR[ac].f+' '+cn(ac).toUpperCase()+'</label><input class="f" id="aA" inputmode="decimal" placeholder="0" autocomplete="off">';
   h+='<div class="sub2" id="aP">≈</div>';
-  if(dk==='wal'&&sk==='wal'&&dst.cur!==src.cur)h+='<label>'+L('ПОЛУЧИТ, ','RECEIVES, ')+CUR[dst.cur].f+' '+cn(dst.cur).toUpperCase()+L(' (можно поправить по курсу обменника)',' (edit to match the exchange rate)')+'</label><input class="f" id="aB" inputmode="decimal" placeholder="0">';
+  if(dk==='wal'&&sk==='wal'&&dst.cur!==src.cur)h+='<label>'+L('КУРС ОБМЕНА: 1 '+src.cur+' = … '+dst.cur,'EXCHANGE RATE: 1 '+src.cur+' = … '+dst.cur)+'</label><input class="f" id="aRt" inputmode="decimal" placeholder="0"><div class="sub" style="margin:4px 0 0">'+L('Поменяешь курс, сумма пересчитается. Поменяешь сумму, пересчитается курс.','Change the rate and the amount updates. Change the amount and the rate updates.')+'</div><label>'+L('ПОЛУЧИТ, ','RECEIVES, ')+CUR[dst.cur].f+' '+cn(dst.cur).toUpperCase()+L(' (можно поправить по курсу обменника)',' (edit to match the exchange rate)')+'</label><input class="f" id="aB" inputmode="decimal" placeholder="0">';
   if(mode==='exp'&&sk==='wal')h+='<label class="chk"><input type="checkbox" id="aNW"> '+L('Не списывать с кошелька (старый расход: попадёт в категорию и аналитику, баланс не изменится)','Do not charge the wallet (old expense: goes to the category and analytics, balance stays the same)')+'</label>';
   h+='<div class="sub" id="aInfo" style="margin-top:8px"></div>';
   h+='<label for="aD">'+L('ДАТА','DATE')+'</label><input class="f" id="aD" type="date" value="'+today()+'">';
   h+='<label for="aN">'+L('ЗАМЕТКА','NOTE')+'</label><textarea class="f op-note" id="aN" rows="5" placeholder="'+(mode==='inc'?L('От кого пришли деньги, за что и другие подробности…','Who it is from, what for, and other details…'):L('На что потрачено и другие подробности…','What it was for and other details…'))+'"></textarea>';
+  if(mode==='inc')h+='<label>'+L('ОТ КОГО','FROM')+'</label><div id="aPp"></div>';
   if(mode==='inc')h+='<label>'+L('ФОТО К ДОХОДУ','PHOTO')+'</label><input type="file" id="aPhoto" accept="image/*" hidden><button type="button" class="btn alt sm" id="aPhotoAdd">📷 '+L('Добавить фотографию','Add a photo')+'</button><div id="aPhotoStatus" class="sub" role="status" aria-live="polite"></div><div id="aPhotoPreview"></div><button type="button" class="btn del hide" id="aPhotoRemove">'+L('Убрать фото','Remove photo')+'</button>';
   h+='<button class="btn" id="aS">'+L('Сохранить','Save')+'</button><button class="btn del" id="aC">'+L('Отмена','Cancel')+'</button>';
   openSheet(h);
-  var editedB=false,photo='',photoBusy=false,photoRequest=0;
+  var editedB=false,rEd='rate',photo='',photoBusy=false,photoRequest=0,pst={sel:''};if($('aPp'))pplWidget($('aPp'),pst);
   var note=$('aN');note.addEventListener('input',function(){note.style.height='auto';note.style.height=Math.max(120,note.scrollHeight+4)+'px'});
   if($('aPhoto')){
     var photoInput=$('aPhoto'),photoStatus=$('aPhotoStatus'),photoPreview=$('aPhotoPreview'),photoRemove=$('aPhotoRemove'),photoAdd=$('aPhotoAdd'),saveButton=$('aS');
@@ -719,7 +766,7 @@ function amountSheet(sk,sid,dk,did,mode0){
   function upd(){
     var a=parse($('aA').value),ok=isFinite(a)&&a>0,cur=ac,nw=$('aNW')&&$('aNW').checked;
     $('aP').innerHTML=ok?bothTxt(a,cur)+(dk==='goal'&&dst.cur!==cur?L(' · в цели: ',' · in goal: ')+fmt(conv(a,cur,dst.cur),dst.cur,true):''):'≈ …';
-    if($('aB')&&!editedB)$('aB').value=ok?r2(conv(a,cur,dst.cur)):'';
+    if($('aB')){if($('aRt')){if(rEd==='b'){var bv=parse($('aB').value);if(ok&&isFinite(bv)&&bv>0)$('aRt').value=rtS(bv/a)}else{var rv=parse($('aRt').value);$('aB').value=(ok&&isFinite(rv)&&rv>0)?r2(a*rv):''}}else if(!editedB)$('aB').value=ok?r2(conv(a,cur,dst.cur)):''}
     var info='';
     if(sk==='wal'&&!nw){var fr=free(src);info=(mode==='res'?L('Свободно на «','Free on "')+nm(src)+L('»: ','": '):L('На «','On "')+nm(src)+L('» сейчас: ','" now: '))+fmt(mode==='res'?fr:D.bal[src.id],src.cur);
       if(ok&&mode==='res'&&a>fr+0.005)info+=L(' — не хватает свободных денег',' — not enough free money');
@@ -728,15 +775,15 @@ function amountSheet(sk,sid,dk,did,mode0){
     else if(mode==='pay'&&$('mhint'))$('mhint').textContent=L('Деньги спишутся с кошелька, остаток по цели уменьшится.','The money is taken from the wallet and the goal gets closer.');
     $('aInfo').textContent=info;
   }
-  $('aA').addEventListener('input',upd);if($('aB'))$('aB').addEventListener('input',function(){editedB=true});if($('aNW'))$('aNW').addEventListener('change',upd);
+  $('aA').addEventListener('input',function(){rEd='rate';upd()});if($('aB'))$('aB').addEventListener('input',function(){editedB=true;if($('aRt')){rEd='b';var a1=parse($('aA').value),b1=parse($('aB').value);if(isFinite(a1)&&a1>0&&isFinite(b1)&&b1>0)$('aRt').value=rtS(b1/a1)}});if($('aRt')){$('aRt').value=rtS(conv(1,src.cur,dst.cur));$('aRt').addEventListener('input',function(){rEd='rate';upd()})}if($('aNW'))$('aNW').addEventListener('change',upd);
   document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){mode=b.getAttribute('data-m');document.querySelectorAll('.seg button').forEach(function(x){x.classList.toggle('on',x===b)});upd()}});
   $('aC').onclick=closeSheet;upd();setTimeout(function(){if($('aA'))$('aA').focus()},60);
   $('aS').onclick=function(){
     if(photoBusy){toast(L('Подожди, фото ещё загружается','Wait, the photo is still loading'));return}
     var a=parse($('aA').value);if(!isFinite(a)||a<=0){toast(L('Впиши сумму','Enter an amount'));return}a=r2(a);
     var o={id:uid(),t:mode,w:wal.id,x:dst.id,a:a,d:$('aD').value||today(),n:$('aN').value.trim()};
-    if(mode==='inc'){o.x=src.id;o.w=dst.id;if(photo)o.photo=photo}
-    if(mode==='tr'){o.w=src.id;o.x=dst.id;o.b=r2(parse($('aB')?$('aB').value:a));if(!isFinite(o.b)||o.b<=0)o.b=a}
+    if(mode==='inc'){o.x=src.id;o.w=dst.id;if(photo)o.photo=photo;if(pst.sel)o.pid=pst.sel}
+    if(mode==='tr'){o.w=src.id;o.x=dst.id;o.b=r2(parse($('aB')?$('aB').value:a));if(!isFinite(o.b)||o.b<=0)o.b=a;if(src.cur!==dst.cur)o.rt=parseFloat((o.b/a).toPrecision(6))}
     if(mode==='exp'){o.w=src.id;o.x=dst.id;if($('aNW')&&$('aNW').checked)o.nw=1}
     if(mode==='res'||mode==='pay'){o.w=src.id;o.x=dst.id;o.b=r2(conv(a,src.cur,dst.cur));
       if(mode==='res'&&a>free(src)+0.005){toast(L('Свободно только ','Only ')+fmt(free(src),src.cur)+L('',' is free'));return}
@@ -826,8 +873,10 @@ function unreserve(wid,gid){
 /* --- журнал: операция --- */
 function opSheet(id){
   var o=S.ops.filter(function(x){return x.id===id})[0];if(!o)return;var i=opInfo(o),am=opAmt(o);
-  openSheet('<h2>'+esc(i.tx)+'</h2><div class="sub">'+fd(o.d)+'</div>'+(o.n?'<div class="saved-note">'+esc(o.n)+'</div>':'')+photoHTML(o.photo)+'<div class="big"><b>'+fmt(Math.abs(am.v),am.cur)+'</b><i>'+bothTxt(Math.abs(am.v),am.cur)+'</i></div><div class="sub">'+L('Если ошиблась суммой, удали запись и добавь заново: все итоги пересчитаются.','If the amount is wrong, delete the entry and add it again: all totals will be recalculated.')+'</div><button class="btn del" id="oD" style="font-size:16px">🗑 '+L('Удалить запись','Delete entry')+'</button><button class="btn alt" id="oC">'+L('Закрыть','Close')+'</button>');
-  $('oC').onclick=closeSheet;$('oD').onclick=function(){if(confirm(L('Удалить эту запись?','Delete this entry?'))){S.ops=S.ops.filter(function(x){return x.id!==id});save();render();closeSheet()}}
+  var pp=o.pid?pplById(o.pid):null,exI='';
+  if(o.t==='tr'&&i.w&&i.x&&i.w.cur!==i.x.cur&&o.b>0&&o.a>0)exI='<div class="kv"><span>'+L('Получено','Received')+'</span><b>'+fmt(o.b,i.x.cur)+'</b></div><div class="kv"><span>'+L('Курс','Rate')+'</span><b>1 '+i.w.cur+' = '+rtS(o.b/o.a)+' '+i.x.cur+'</b></div>';
+  openSheet('<h2>'+esc(i.tx)+'</h2><div class="sub">'+fd(o.d)+'</div>'+(pp?'<div class="pvw" style="margin:6px 0"><span class="pav big">'+pAvIn(pp)+'</span><b>'+esc(pp.name||'')+'</b></div>':'')+exI+(o.n?'<div class="saved-note">'+esc(o.n)+'</div>':'')+photoHTML(o.photo)+'<div class="big"><b>'+fmt(Math.abs(am.v),am.cur)+'</b><i>'+bothTxt(Math.abs(am.v),am.cur)+'</i></div><div class="sub">'+L('Если ошиблась суммой, удали запись и добавь заново: все итоги пересчитаются.','If the amount is wrong, delete the entry and add it again: all totals will be recalculated.')+'</div>'+(o.t==='inc'?'<button class="btn alt" id="oP">👤 '+L('От кого','From')+'</button>':'')+'<button class="btn del" id="oD" style="font-size:16px">🗑 '+L('Удалить запись','Delete entry')+'</button><button class="btn alt" id="oC">'+L('Закрыть','Close')+'</button>');
+  $('oC').onclick=closeSheet;if($('oP'))$('oP').onclick=function(){personPick(o)};$('oD').onclick=function(){if(confirm(L('Удалить эту запись?','Delete this entry?'))){S.ops=S.ops.filter(function(x){return x.id!==id});save();render();closeSheet()}}
 }
 
 /* --- добавление / изменение --- */
@@ -976,6 +1025,8 @@ function helpSheet(){
    ['🎯','Цели и долги','Goals and debts','Нажми «+» в ряду целей: впиши название, сумму, валюту и, если хочешь, срок. Перетащи кошелёк на цель и выбери: «Отложить» 🔒 бронирует деньги (они остаются в кошельке, но считаются занятыми) или «Оплатила / Вернула» списывает их. На кошельке 🔒 показывает отложенное, а 🔓 свободное.','Tap "+" in the goals row: enter a name, amount, currency and, if you like, a deadline. Drag a wallet onto a goal and choose: "Set aside" 🔒 reserves the money (it stays in the wallet but counts as taken) or "Paid / Repaid" takes it out. On a wallet 🔒 shows what is set aside and 🔓 what is free.'],
    ['📅','Сроки и «нужно в день»','Deadlines and "needed per day"','Если у цели есть срок, под значком видно «до 15 дек», а внутри цели и в «Аналитике» считается, сколько нужно откладывать в день (или в неделю, или в месяц: переключается). Уже отложенные 🔒 деньги считаются закрытыми. После каждого платежа расчёт обновляется сам. Если срок прошёл, цель краснеет и пишет, насколько просрочена. В «Аналитике» видно общую цифру на все цели и сравнение с тем, сколько у тебя остаётся после расходов: «на пути» или «отстаёшь».','If a goal has a deadline you will see "by Dec 15" under the icon, and inside the goal and in Analytics the app works out how much to save per day (or week or month: you can switch). Money already set aside 🔒 counts as covered. The figure updates after every payment. If the deadline passes the goal turns red and shows how overdue it is. Analytics shows the total for all goals and compares it with what you keep after spending: "on track" or "falling behind".'],
    ['✎','Поправить сумму вручную','Edit an amount by hand','Нажми на любой значок и выбери «Изменить сумму». У кошелька впиши, сколько там на самом деле: в журнале появится серая «Корректировка» на разницу (это не доход и не расход, её можно удалить или скрыть фильтром). У категории и дохода можно поправить итог за месяц, у цели сумму и сколько уже оплачено. Конкретные траты лучше поправить через журнал: удали запись и добавь заново.','Tap any icon and choose "Edit amount". For a wallet, enter what is really there: a grey "Adjustment" for the difference appears in the journal (it is neither income nor expense, and you can delete it or hide it with a filter). For a category or income you can fix the month total, for a goal the amount and how much is paid. Specific expenses are best fixed in the journal: delete the entry and add it again.'],
+   ['👤','Фото людей','People photos','При записи дохода выбери «От кого» или нажми «Новый»: выбери фото из галереи и обрежь его по кругу. В журнале вместо значка будет кружок с фото этого человека. У старой записи фото можно добавить: открой её и нажми «От кого».','When you record income, choose "From" or tap "New": pick a photo from the gallery and crop it into a circle. The journal then shows that person\'s photo. For an old entry open it and tap "From".'],
+   ['💱','Обмен валют по своему курсу','Exchange at your own rate','Перетащи один кошелёк на другой (например, «Доллары» на «Дирхамы»). В окне увидишь поле «Курс»: впиши свой курс, и сумма пересчитается. Или впиши, сколько получила, и курс посчитается сам. Курс сохранится в журнале.','Drag one wallet onto another (e.g. Dollars onto Dirhams). Type your own rate and the amount updates, or type what you received and the rate updates. The rate is saved in the journal.'],
    ['↔️','Порядок значков','Reorder icons','Зажми любой значок примерно на секунду: все значки задрожат. Теперь можно перетащить значок на новое место или нажать на один значок, а потом на другой, и они поменяются местами. Когда закончишь, нажми «Готово».','Hold any icon for about a second: all icons start to wiggle. Now you can drag an icon to a new place, or tap one icon and then another to swap them. When finished, tap "Done".'],
    ['🖼','Свои значки и названия','Your own icons and names','Нажми значок, затем «Название и значок». Можно выбрать значок из набора, смайлик, написать буквы или загрузить своё фото. У каждого значка два названия: по-русски и по-английски. Английское приложение переведёт само, если есть интернет, либо впиши вручную.','Tap an icon, then "Name & icon". Choose an icon from the set, an emoji, type letters or upload your own photo. Every icon has two names: Russian and English. The app translates automatically when online, or you can type it yourself.'],
    ['📊','Аналитика, советы, журнал','Analytics, tips, journal','«Аналитика» показывает, на что уходят деньги, и хватает ли на цели. «Советы» подсказывают, где сократить траты. «Журнал» хранит все записи; нажми на запись, чтобы посмотреть или удалить её. Фильтры сверху помогают показать только доходы, расходы, переводы или корректировки.','"Analytics" shows where the money goes and whether you can afford your goals. "Tips" suggest where to cut. The "Journal" keeps every entry; tap an entry to view or delete it. Filters on top show only income, expenses, transfers or adjustments.'],
@@ -1013,13 +1064,14 @@ function begin(x,y){
 function mv(x,y){lastY=y;lastX=x;ghost.style.transform='translate('+(x-28)+'px,'+(y-67)+'px) scale(1.15)';
   document.querySelectorAll('.cell.hov').forEach(function(c){c.classList.remove('hov')});
   var c=hit(x,y);if(c)c.classList.add('hov')}
-function end(x,y,cancel){
+function unlift(){clearInterval(scrollT);document.body.classList.remove('dragging');if(st&&st.c)st.c.classList.remove('lift');if(ghost){ghost.remove();ghost=null}document.querySelectorAll('.cell.tgt,.cell.hov').forEach(function(e){e.classList.remove('tgt','hov')});if(st)st.on=false}
+function end(x,y,cancel,tap){
   clearTimeout(st.tr);clearTimeout(st.to);clearInterval(scrollT);
   if(st.on){
-    var c=cancel?null:hit(x,y),sc=st.c;
+    var c=(cancel||tap)?null:hit(x,y),sc=st.c;
     document.body.classList.remove('dragging');sc.classList.remove('lift');if(ghost){ghost.remove();ghost=null}
     document.querySelectorAll('.cell.tgt,.cell.hov').forEach(function(e){e.classList.remove('tgt','hov')});
-    swallow=Date.now()+450;
+    if(!tap)swallow=Date.now()+450;
     if(c&&c!==sc&&validT(sc.dataset.k,c.dataset.k)){if(ord)moveItem(sc.dataset.k,sc.dataset.id,c.dataset.id);else amountSheet(sc.dataset.k,sc.dataset.id,c.dataset.k,c.dataset.id)}
   }
   st=null;
@@ -1029,8 +1081,8 @@ function bindDrag(){
   function canDrag(c){return ord||c.dataset.k==='src'||c.dataset.k==='wal'}
   function down(c,x,y,touch){
     st={c:c,x:x,y:y,on:false,touch:touch,ready:false,moved:false};
-    st.tr=setTimeout(function(){if(st&&!st.on&&!st.moved&&canDrag(st.c)){st.ready=true}},ord?120:220);
-    if(!ord)st.to=setTimeout(function(){if(st&&!st.on&&!st.moved){enterOrd();if(st)st.ready=true}},650);
+    st.tr=setTimeout(function(){if(st&&!st.on&&!st.moved&&canDrag(st.c)){st.ready=true;if(st.touch)begin(st.x,st.y)}},ord?100:130);
+    if(!ord)st.to=setTimeout(function(){if(st&&!st.moved){if(st.on)unlift();enterOrd();if(st)st.ready=true}},650);
   }
   root.addEventListener('touchstart',function(e){
     if(st)return;var c=e.target.closest('.cell[data-k]');if(!c)return;var t=e.touches[0];down(c,t.clientX,t.clientY,true);
@@ -1041,9 +1093,10 @@ function bindDrag(){
       if(Math.abs(t.clientX-st.x)>9||Math.abs(t.clientY-st.y)>9){st.moved=true;clearTimeout(st.tr);clearTimeout(st.to);if(st.ready&&canDrag(st.c)){e.preventDefault();begin(t.clientX,t.clientY)}else{st=null}}
       return;
     }
+    if(!st.moved&&(Math.abs(t.clientX-st.x)>9||Math.abs(t.clientY-st.y)>9)){st.moved=true;clearTimeout(st.to)}
     e.preventDefault();mv(t.clientX,t.clientY);
   },{passive:false});
-  document.addEventListener('touchend',function(e){if(!st||!st.touch)return;if(st.on){e.preventDefault();var t=e.changedTouches[0];end(t.clientX,t.clientY)}else{clearTimeout(st.tr);clearTimeout(st.to);st=null}},{passive:false});
+  document.addEventListener('touchend',function(e){if(!st||!st.touch)return;if(st.on){var t=e.changedTouches[0],tap=!st.moved;if(!tap)e.preventDefault();end(t.clientX,t.clientY,false,tap)}else{clearTimeout(st.tr);clearTimeout(st.to);st=null}},{passive:false});
   document.addEventListener('touchcancel',function(){if(st&&st.touch){if(st.on)end(0,0,true);else{clearTimeout(st.tr);clearTimeout(st.to);st=null}}});
   root.addEventListener('mousedown',function(e){
     if(st||e.button!==0)return;var c=e.target.closest('.cell[data-k]');if(!c)return;down(c,e.clientX,e.clientY,false);
