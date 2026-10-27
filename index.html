@@ -873,7 +873,7 @@ function detailSheet(k,id){
   h+='<button class="btn" id="dAdj" style="margin-top:10px">✎ '+L('Изменить сумму','Edit amount')+'</button>';
   var hist=opsOf(k,id,10);
   if(hist.length)h+='<div class="hist"><h3>'+L('ПОСЛЕДНИЕ ОПЕРАЦИИ','RECENT ENTRIES')+'</h3>'+hist.map(function(o){return histRow(o)}).join('')+'</div>';
-  h+='<div class="two"><button class="btn alt" id="dEdit">'+L('Название и значок','Name & icon')+'</button><button class="btn alt" id="dPic">🖼 '+L('Своё фото','Own photo')+'</button></div><button class="btn del" id="dX">'+L('Закрыть','Close')+'</button>';
+  h+='<div class="two"><button class="btn alt" id="dEdit">'+(k==='goal'?L('Название, валюта, удалить','Name, currency, delete'):L('Название и значок','Name & icon'))+'</button><button class="btn alt" id="dPic">🖼 '+L('Своё фото','Own photo')+'</button></div><button class="btn del" id="dX">'+L('Закрыть','Close')+'</button>';
   openSheet(h);
   $('dPic').onclick=function(){pickImage(function(data){it.icon=data;save();render();detailSheet(k,id);toast(L('Картинка обновлена ✓','Picture updated ✓'))})};
   $('dX').onclick=closeSheet;$('dEdit').onclick=function(){itemSheet(k,id)};$('dAdj').onclick=function(){adjustSheet(k,id)};
@@ -969,7 +969,11 @@ function itemSheet(k,id){
     var ru=$('iN').value.trim(),en=$('iE').value.trim();if(!ru&&!en){toast(L('Впиши название','Enter a name'));return}
     d.name=ru||en;d.en=en;if(!d.icon)d.icon=k==='wal'?'💰':k==='goal'?'🎯':k==='src'?'💼':'🛒';
     if(k==='wal'){d.cur=$('iC').value;var v=parse($('iI').value);d.init=isFinite(v)?v:0}
-    if(k==='goal'){d.cur=$('iC').value;var t=parse($('iG').value);if(!isFinite(t)||t<=0){if(!ex){toast(L('Впиши сумму цели','Enter the goal amount'));return}t=0}d.target=r2(t);d.deadline=$('iDl').value||''}
+    if(k==='goal'){d.cur=$('iC').value;var t=parse($('iG').value);if(!isFinite(t)||t<=0){if(!ex){toast(L('Впиши сумму цели','Enter the goal amount'));return}t=0}
+      if(ex&&d.cur!==ex.cur){var oc=ex.cur,same=Math.abs(t-(+ex.target||0))<0.005;
+        S.ops.forEach(function(o){if(o.x===id&&(o.t==='res'||o.t==='pay'||o.t==='gadj')){['b','rb'].forEach(function(f){if(o[f])o[f]=r2(conv(o[f],oc,d.cur))})}});
+        if(same)t=conv(t,oc,d.cur)}
+      d.target=r2(t);d.deadline=$('iDl').value||''}
     if(k==='cat')d.want=$('iW').checked;
     if(k==='wal')d.nb=!$('iNB').checked;
     if(ex){var i=S[k].indexOf(ex);S[k][i]=d}else S[k].push(d);
