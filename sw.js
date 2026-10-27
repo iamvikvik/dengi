@@ -1,4 +1,4 @@
-const CACHE = 'money-glass-v8';
+const CACHE = 'money-glass-v9';
 const ASSETS = ['./','./index.html','./manifest.webmanifest','./logo.png','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

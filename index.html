@@ -40,6 +40,7 @@ button{cursor:pointer;font-family:inherit}
 .gdot{display:none;position:absolute;right:1px;top:1px;width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px #F6EFE6}
 .gdot.on{display:block}
 .strip{display:flex;border-radius:18px;padding:6px 2px}
+.tdy{font-size:12px;color:#8a8d9c;text-align:center;margin:6px 0 0;letter-spacing:.1px}
 .blk{flex:1;min-width:0;padding:0 10px;position:relative}
 .blk+.blk:before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;background:var(--line)}
 .lb{display:block;font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--lab);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -240,6 +241,7 @@ button:focus-visible,.cell:focus-visible{outline:3px solid var(--ink);outline-of
     <button class="gear" id="gear" aria-label="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><i class="gdot" id="gdot"></i></button>
   </div>
   <div class="glass strip" id="stats"></div>
+  <div class="tdy" id="tdy"></div>
 </div>
 <div id="pages">
   <div class="page" id="pg0"></div>
@@ -524,6 +526,9 @@ function stats(){
   var c=catSums('m0c'),er=0,ea=0;Object.keys(c).forEach(function(k){er+=c[k].rub;ea+=c[k].aed});
   function blk(l,r,a,extra){var m=S.set.main==='AED';return '<div class="blk"><span class="lb">'+l+'</span><b class="bv">'+fmt(m?a:r,m?'AED':'RUB',true)+'</b><i>'+fmt(m?r:a,m?'RUB':'AED',true)+'</i>'+(extra||'')+'</div>'}
   var fr=rs>0.5?'<em class="fr">🔓 '+L('свободно','free')+' '+fmt(bal-rs,'RUB',true)+' · '+fmt(balA-rsA,'AED',true)+'</em>':'';
+  var tr=0,ta=0,td=today();S.ops.forEach(function(o){if(o.t==='exp'&&o.d===td){var w=find('wal',o.w);tr+=o.rub!=null?o.rub:(w?conv(o.a,w.cur,'RUB'):0);ta+=o.aed!=null?o.aed:(w?conv(o.a,w.cur,'AED'):0)}});
+  var tm=S.set.main==='AED',tp=[fmt(Math.round(tr),'RUB',true),fmt(Math.round(ta),'AED',true)];if(tm)tp.reverse();
+  $('tdy').textContent=L('Потрачено сегодня','Spent today')+': '+tp.join(' · ');
   $('stats').innerHTML=blk(L('Баланс','Balance'),bal,balA,fr)+blk(L('Расходы','Spent')+' · '+mLbl(),er,ea);
 }
 function fit(){
@@ -889,8 +894,37 @@ function opSheet(id){
   var o=S.ops.filter(function(x){return x.id===id})[0];if(!o)return;var i=opInfo(o),am=opAmt(o);
   var pp=o.pid?pplById(o.pid):null,exI='';
   if(o.t==='tr'&&i.w&&i.x&&i.w.cur!==i.x.cur&&o.b>0&&o.a>0)exI='<div class="kv"><span>'+L('Получено','Received')+'</span><b>'+fmt(o.b,i.x.cur)+'</b></div><div class="kv"><span>'+L('Курс','Rate')+'</span><b>1 '+i.w.cur+' = '+rtS(o.b/o.a)+' '+i.x.cur+'</b></div>';
-  openSheet('<h2>'+esc(i.tx)+'</h2><div class="sub">'+fd(o.d)+'</div>'+(pp?'<div class="pvw" style="margin:6px 0"><span class="pav big">'+pAvIn(pp)+'</span><b>'+esc(pp.name||'')+'</b></div>':'')+exI+(o.n?'<div class="saved-note">'+esc(o.n)+'</div>':'')+photoHTML(o.photo)+'<div class="big"><b>'+fmt(Math.abs(am.v),am.cur)+'</b><i>'+bothTxt(Math.abs(am.v),am.cur)+'</i></div><div class="sub">'+L('Если ошиблась суммой, удали запись и добавь заново: все итоги пересчитаются.','If the amount is wrong, delete the entry and add it again: all totals will be recalculated.')+'</div>'+(o.t==='inc'?'<button class="btn alt" id="oP">👤 '+L('От кого','From')+'</button>':'')+'<button class="btn del" id="oD" style="font-size:16px">🗑 '+L('Удалить запись','Delete entry')+'</button><button class="btn alt" id="oC">'+L('Закрыть','Close')+'</button>');
-  $('oC').onclick=closeSheet;if($('oP'))$('oP').onclick=function(){personPick(o)};$('oD').onclick=function(){if(confirm(L('Удалить эту запись?','Delete this entry?'))){S.ops=S.ops.filter(function(x){return x.id!==id});save();render();closeSheet()}}
+  openSheet('<h2>'+esc(i.tx)+'</h2><div class="sub">'+fd(o.d)+'</div>'+(pp?'<div class="pvw" style="margin:6px 0"><span class="pav big">'+pAvIn(pp)+'</span><b>'+esc(pp.name||'')+'</b></div>':'')+exI+(o.n?'<div class="saved-note">'+esc(o.n)+'</div>':'')+photoHTML(o.photo)+'<div class="big"><b>'+fmt(Math.abs(am.v),am.cur)+'</b><i>'+bothTxt(Math.abs(am.v),am.cur)+'</i></div>'+(o.t==='inc'?'<button class="btn alt" id="oP">👤 '+L('От кого','From')+'</button>':'')+'<button class="btn" id="oE">✎ '+L('Изменить','Edit')+'</button><button class="btn del" id="oD" style="font-size:16px">🗑 '+L('Удалить запись','Delete entry')+'</button><button class="btn alt" id="oC">'+L('Закрыть','Close')+'</button>');
+  $('oC').onclick=closeSheet;$('oE').onclick=function(){editOp(o)};if($('oP'))$('oP').onclick=function(){personPick(o)};$('oD').onclick=function(){if(confirm(L('Удалить эту запись?','Delete this entry?'))){S.ops=S.ops.filter(function(x){return x.id!==id});save();render();closeSheet()}}
+}
+
+function editOp(o){
+  var full=(o.t==='inc'||o.t==='exp');
+  var h='<h2>✎ '+L('Изменить запись','Edit entry')+'</h2>';
+  if(full){
+    h+='<label>'+L('СУММА','AMOUNT')+'</label><input class="f" id="eA" inputmode="decimal" value="'+Math.abs(o.a)+'">';
+    var wo=S.wal.map(function(w){return '<option value="'+w.id+'"'+(w.id===o.w?' selected':'')+'>'+esc(nm(w))+' · '+w.cur+'</option>'}).join('');
+    var xs=(o.t==='inc'?S.src:S.cat).map(function(x){return '<option value="'+x.id+'"'+(x.id===o.x?' selected':'')+'>'+esc(nm(x))+'</option>'}).join('');
+    h+='<label>'+(o.t==='inc'?L('ИСТОЧНИК','SOURCE'):L('КАТЕГОРИЯ','CATEGORY'))+'</label><select class="f" id="eX">'+xs+'</select>';
+    h+='<label>'+L('КОШЕЛЁК','WALLET')+'</label><select class="f" id="eW">'+wo+'</select>';
+  }else h+='<div class="sub">'+L('Для переводов и обменов можно менять только дату и заметку.','For transfers and exchanges only the date and note can be changed.')+'</div>';
+  h+='<label for="eD">'+L('ДАТА','DATE')+'</label><input class="f" id="eD" type="date" value="'+(o.d||today())+'">';
+  h+='<label for="eN">'+L('ЗАМЕТКА','NOTE')+'</label><textarea class="f op-note" id="eN" rows="4">'+esc(o.n||'')+'</textarea>';
+  h+='<button class="btn" id="eS">'+L('Сохранить','Save')+'</button><button class="btn del" id="eC">'+L('Отмена','Cancel')+'</button>';
+  openSheet(h);
+  $('eC').onclick=function(){opSheet(o.id)};
+  $('eS').onclick=function(){
+    var d=$('eD').value||o.d,n=$('eN').value.trim();
+    if(full){
+      var a=parse($('eA').value);if(!(a>0)){toast(L('Введи сумму','Enter an amount'));return}
+      var w=find('wal',$('eW').value),old=o.a,oldW=find('wal',o.w);
+      if(!w)return;
+      if(w.id===o.w&&oldW&&old>0&&o.aed!=null&&o.rub!=null){o.aed=r2(o.aed*a/old);o.rub=r2(o.rub*a/old)}
+      else{o.aed=r2(conv(a,w.cur,'AED'));o.rub=r2(conv(a,w.cur,'RUB'))}
+      o.a=a;o.w=w.id;o.x=$('eX').value;
+    }
+    o.d=d;o.n=n;save();render();closeSheet();toast(L('Сохранено','Saved'));
+  };
 }
 
 /* --- добавление / изменение --- */
