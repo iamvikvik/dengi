@@ -453,11 +453,13 @@ function compute(){
 function free(w){return r2(D.bal[w.id]-D.res[w.id])}
 function total(fn,cur,all){return S.wal.reduce(function(s,w){return s+(w.nb&&!all?0:conv(fn(w),w.cur,cur))},0)}
 function ym(offset){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+(offset||0));return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)}
+function mLbl(w){var f=S.set.from;if(f&&f>ym(0)+'-01'){var q=f.split('-');return L('с ','from ')+q[2]+'.'+q[1]}return w?L('за ','for ')+mname(ym(0)):mname(ym(0))}
 function inPeriod(o,p){
   var d=o.d;
-  if(S.set.from&&d<S.set.from)return false;
   if(p==='all')return true;
   if(p==='cust'){var r=S.set.rng||{};return (!r.a||d>=r.a)&&(!r.b||d<=r.b)}
+  if(p==='m0c')return d.slice(0,7)===ym(0)&&(!S.set.from||d>=S.set.from);
+  if(p==='m1c')return d.slice(0,7)===ym(-1)&&(!S.set.from||d>=S.set.from);
   if(p==='m0')return d.slice(0,7)===ym(0);
   if(p==='m1')return d.slice(0,7)===ym(-1);
   if(p==='d7'||p==='d30'){var t=new Date();t.setDate(t.getDate()-(p==='d7'?6:29));return d>=dstr(t)&&d<=today()}
@@ -519,10 +521,10 @@ function bkDue(){if(!S.ops.length&&!S.wal.length)return false;var days=S.set.bk?
 function stats(){
   var bal=total(function(w){return D.bal[w.id]},'RUB'),balA=total(function(w){return D.bal[w.id]},'AED');
   var rs=total(function(w){return D.res[w.id]},'RUB'),rsA=total(function(w){return D.res[w.id]},'AED');
-  var c=catSums('m0'),er=0,ea=0;Object.keys(c).forEach(function(k){er+=c[k].rub;ea+=c[k].aed});
+  var c=catSums('m0c'),er=0,ea=0;Object.keys(c).forEach(function(k){er+=c[k].rub;ea+=c[k].aed});
   function blk(l,r,a,extra){var m=S.set.main==='AED';return '<div class="blk"><span class="lb">'+l+'</span><b class="bv">'+fmt(m?a:r,m?'AED':'RUB',true)+'</b><i>'+fmt(m?r:a,m?'RUB':'AED',true)+'</i>'+(extra||'')+'</div>'}
   var fr=rs>0.5?'<em class="fr">🔓 '+L('свободно','free')+' '+fmt(bal-rs,'RUB',true)+' · '+fmt(balA-rsA,'AED',true)+'</em>':'';
-  $('stats').innerHTML=blk(L('Баланс','Balance'),bal,balA,fr)+blk(L('Расходы','Spent')+' · '+mname(ym(0)),er,ea);
+  $('stats').innerHTML=blk(L('Баланс','Balance'),bal,balA,fr)+blk(L('Расходы','Spent')+' · '+mLbl(),er,ea);
 }
 function fit(){
   document.querySelectorAll('#stats .bv').forEach(function(e){var s=19;e.style.fontSize=s+'px';var w=e.parentNode.clientWidth;while(e.scrollWidth>w&&s>12){s-=1;e.style.fontSize=s+'px'}});
@@ -545,16 +547,16 @@ function slotsPage(k,items,addLabel){
 }
 var pgCount=1;
 function pageMain(){
-  var h='',ms=catSums('m0'),mi=incSums('m0');
+  var h='',ms=catSums('m0c'),mi=incSums('m0c');
   var empty=!S.src.length&&!S.wal.length&&!S.cat.length&&!S.goal.length&&!S.set.empty;
   if(empty){
     h+='<div class="glass welcome"><img src="logo.png" alt=""><h3>'+L('Добро пожаловать','Welcome')+'</h3><p>'+L('Приложение пока пустое. Можно сразу взять готовый набор: кошельки, категории расходов и цели с красивыми значками. Потом всё можно менять.','The app is empty for now. You can start with a ready set of wallets, expense categories and goals with nice icons. You can change everything later.')+'</p><button class="btn" id="starter">'+L('Создать стартовый набор','Create starter set')+'</button><button class="btn alt sm" id="startEmpty">'+L('Начну с нуля','Start from scratch')+'</button></div>';
   }
-  h+=lab(L('Доходы','Income'),'<small>'+mname(ym(0))+'</small>')+'<div class="grid hs">'+S.src.map(function(s){var m=mi[s.id]||{rub:0,aed:0};return cell('src',s,two(m.rub,m.aed))}).join('')+addCell('src',L('доход','income'))+'</div>';
+  h+=lab(L('Доходы','Income'),'<small>'+mLbl()+'</small>')+'<div class="grid hs">'+S.src.map(function(s){var m=mi[s.id]||{rub:0,aed:0};return cell('src',s,two(m.rub,m.aed))}).join('')+addCell('src',L('доход','income'))+'</div>';
   h+=lab(L('Кошельки','Wallets'))+'<div class="grid hs">'+S.wal.map(function(w){return cell('wal',w,walBody(w))}).join('')+addCell('wal',L('кошелёк','wallet'))+'</div>';
   var items=S.cat.map(function(c){var m=ms[c.id]||{rub:0,aed:0};return cell('cat',c,two(m.rub,m.aed))});
   var np=Math.ceil((items.length+1)/20);pgCount=np;
-  h+=lab(L('Расходы','Expenses'),'<small>'+mname(ym(0))+'</small>')+'<div class="pager" id="pager">'+slotsPage('cat',items,L('категория','category'))+'</div>'+(np>1?'<div class="dots" id="dots">'+Array.apply(null,Array(np)).map(function(_,i){return '<span class="'+(i===0?'on':'')+'"></span>'}).join('')+'</div>':'');
+  h+=lab(L('Расходы','Expenses'),'<small>'+mLbl()+'</small>')+'<div class="pager" id="pager">'+slotsPage('cat',items,L('категория','category'))+'</div>'+(np>1?'<div class="dots" id="dots">'+Array.apply(null,Array(np)).map(function(_,i){return '<span class="'+(i===0?'on':'')+'"></span>'}).join('')+'</div>':'');
   h+=lab(L('Цели и долги','Goals & debts'))+'<div class="grid hs">'+S.goal.map(function(g){var gi=goalInfo(g);
     var body;
     if(gi.nosum)body='<i class="ask">'+L('укажи сумму','set amount')+'</i>';
@@ -614,11 +616,11 @@ function planCard(){
 /* ================= советы ================= */
 function pageAdvice(){
   var tips=[],dn=new Date().getDate(),dim=new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
-  var cs=catSums('m0'),ps=catSums('m1'),exp=0,wants=0,pexp=0,inc=0;
+  var cs=catSums('m0c'),ps=catSums('m1c'),exp=0,wants=0,pexp=0,inc=0;
   var catMap={};S.cat.forEach(function(c){catMap[c.id]=c});
   Object.keys(cs).forEach(function(k){exp+=cs[k].aed;if(catMap[k]&&catMap[k].want)wants+=cs[k].aed});
   Object.keys(ps).forEach(function(k){pexp+=ps[k].aed});
-  S.ops.forEach(function(o){if((o.t==='inc'||o.t==='iadj')&&inPeriod(o,'m0'))inc+=o.aed});
+  S.ops.forEach(function(o){if((o.t==='inc'||o.t==='iadj')&&inPeriod(o,'m0c'))inc+=o.aed});
   var freeA=total(free,'AED'),balA=total(function(w){return D.bal[w.id]},'AED');
   function T(e,t,p,cl,pr){tips.push({e:e,t:t,p:p,cl:cl||'',pr:pr||5})}
   if(!S.ops.length)T('🐷',L('Начни записывать, и я подскажу','Start logging and I will help'),L('Добавь доходы и расходы. Когда наберётся несколько операций, здесь появятся персональные подсказки: куда уходят деньги, сколько можно откладывать и успеваешь ли ты к срокам целей.','Add income and expenses. After a few entries you will see personal tips here: where the money goes, how much you can save and whether you are on time for your goals.'),'',1);
@@ -639,7 +641,7 @@ function pageAdvice(){
         else T('🏠','«'+nm(c)+'»: '+sp+L('% всех трат','% of all spending'),L('Для обязательной статьи это нормально, но следи, чтобы она не росла. Сэкономить здесь сложно, зато можно увеличить доход или сократить другие, более гибкие траты.','For an essential item this is normal, but keep an eye on it. It is hard to save here; you can raise income or trim more flexible spending instead.'),'',6)}}
     var wsh=wants/exp;
     if(wants>0&&wsh>0.3)T('🎀',L('На приятные траты уходит '+Math.round(wsh*100)+'%','Treats take '+Math.round(wsh*100)+'% of spending'),L('По правилу 50/30/20 на «хочу» лучше не больше 30% бюджета. Сейчас это ','By the 50/30/20 rule, "wants" should stay under 30%. Now it is ')+sum2(wants)+L('. Каждые 10% сокращения дают ещё ','. Every 10% you cut adds ')+sum2(wants*0.1)+L(' в месяц.',' a month.'),'bad',2);
-    var small=0,sn=0;S.ops.forEach(function(o){if(o.t==='exp'&&inPeriod(o,'m0')&&catMap[o.x]&&catMap[o.x].want&&o.aed<=45){small+=o.aed;sn++}});
+    var small=0,sn=0;S.ops.forEach(function(o){if(o.t==='exp'&&inPeriod(o,'m0c')&&catMap[o.x]&&catMap[o.x].want&&o.aed<=45){small+=o.aed;sn++}});
     if(sn>=6)T('☕',L('Мелкие траты: '+sn+' шт. на ','Small purchases: '+sn+' totalling ')+sum2(small),L('Каждая по отдельности незаметна, но вместе это ','Each one is unnoticeable, but together it is ')+sum2(small*12)+L(' в год. Попробуй «правило 24 часов»: если не критично, подожди сутки.',' a year. Try the 24-hour rule: if it is not urgent, wait a day.'),'',3);
     var gr=Object.keys(cs).map(function(k){var pv=ps[k]?ps[k].aed:0,pace=dn>=7?cs[k].aed/dn*dim:0;return{k:k,now:pace,pv:pv}}).filter(function(x){return x.pv>50&&x.now>x.pv*1.3&&x.now-x.pv>50&&catMap[x.k]}).sort(function(a,b){return(b.now-b.pv)-(a.now-a.pv)}).slice(0,2);
     gr.forEach(function(x){T('📈','«'+nm(catMap[x.k])+L('» растёт','» is growing'),L('При текущем темпе в этом месяце выйдет около ','At the current pace this month will be about ')+sum2(x.now)+L(', в прошлом было ',', last month it was ')+sum2(x.pv)+' (+'+Math.round((x.now/x.pv-1)*100)+'%).','bad',3)});
@@ -669,7 +671,7 @@ function pageAdvice(){
 }
 
 /* ================= журнал ================= */
-var jF='all',jHide=false,jLimit=60,jAll=false;
+var jF='all',jHide=false,jLimit=60;
 function opInfo(o){
   var w=find('wal',o.w),x=null,ic='💰',tx='',sign='-',cls='',neu=false;
   if(o.t==='inc'){x=find('src',o.x);tx=(x?nm(x):L('доход','income'))+' → '+(w?nm(w):'?');sign='+';cls='in';ic=x?x.icon:'💼'}
@@ -699,7 +701,6 @@ function histRow(o,nod){
 }
 function jMatch(o){
   if(o.t==='skip')return false;
-  if(S.set.from&&!jAll&&o.d<S.set.from)return false;
   var adj=(o.t==='adj'||o.t==='cadj'||o.t==='iadj'||o.t==='gadj');
   if(jHide&&adj)return false;
   if(jF==='all')return true;
@@ -713,7 +714,6 @@ function pageJournal(){
   var ops=all.filter(jMatch);
   var F=[['all',L('Все','All')],['inc',L('Доходы','Income')],['exp',L('Расходы','Expenses')],['tr',L('Переводы','Transfers')],['adj',L('Корректировки','Adjustments')]];
   var h='<div class="chips">'+F.map(function(f){return '<button class="chip'+(jF===f[0]?' on':'')+'" data-jf="'+f[0]+'">'+f[1]+'</button>'}).join('')+'<button class="chip'+(jHide?' on':'')+'" data-jhide="1">'+L('Без корректировок','Hide adjustments')+'</button></div>';
-  if(S.set.from)h+='<div class="sub" style="margin:2px 4px 8px">'+(jAll?L('Показаны все операции. ','Showing all entries. '):L('Показаны операции с ','Showing entries from ')+fd(S.set.from)+'. ')+'<a href="#" data-jall="1" style="color:var(--ink);font-weight:600">'+(jAll?L('Только с этой даты','Only from this date'):L('Показать все','Show all'))+'</a></div>';
   if(!ops.length)h+='<div class="empty"><img src="logo.png" alt=""><br>'+L('Операций пока нет.','No entries yet.')+'</div>';
   var last='';ops.slice(0,jLimit).forEach(function(o){if(o.d!==last){h+='<div class="dayh">'+(o.d===today()?L('СЕГОДНЯ','TODAY'):fd(o.d))+'</div>';last=o.d}h+=histRow(o,true)});
   if(ops.length>jLimit)h+='<button class="btn alt sm" id="more">'+L('Показать ещё','Show more')+'</button>';
@@ -813,8 +813,8 @@ function adjustSheet(k,id){
   var cur,now;
   if(k==='wal'){cur=it.cur;now=D.bal[id];
     h+='<div class="sub">'+L('Впиши, сколько на кошельке на самом деле. В журнале появится серая «Корректировка» на разницу. Это не доход и не расход.','Enter how much is really in the wallet. A grey "Adjustment" for the difference will appear in the journal. It is neither income nor an expense.')+'</div><label>'+L('СЕЙЧАС НА КОШЕЛЬКЕ, ','IN THE WALLET NOW, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(now).replace('.',',')+'">'}
-  else if(k==='cat'||k==='src'){cur=S.set.main;var m=(k==='cat'?catSums('m0'):incSums('m0'))[id]||{rub:0,aed:0};now=cur==='AED'?m.aed:m.rub;
-    h+='<div class="sub">'+(k==='cat'?L('Впиши, сколько всего потрачено в этой категории за ','Enter the total spent in this category for '):L('Впиши, сколько всего получено из этого источника за ','Enter the total received from this source for '))+mname(ym(0))+L('. Кошельки не изменятся: в журнале появится серая «Корректировка» на разницу. Если нужно записать конкретный расход, лучше добавь его отдельной записью.','. Wallets will not change: a grey "Adjustment" for the difference appears in the journal. To record a specific expense, it is better to add it as a separate entry.')+'</div><label>'+L('ИТОГО ЗА МЕСЯЦ, ','MONTH TOTAL, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(r2(now)).replace('.',',')+'">'}
+  else if(k==='cat'||k==='src'){cur=S.set.main;var m=(k==='cat'?catSums('m0c'):incSums('m0c'))[id]||{rub:0,aed:0};now=cur==='AED'?m.aed:m.rub;
+    h+='<div class="sub">'+(k==='cat'?L('Впиши, сколько всего потрачено в этой категории ','Enter the total spent in this category '):L('Впиши, сколько всего получено из этого источника ','Enter the total received from this source '))+mLbl(1)+L('. Кошельки не изменятся: в журнале появится серая «Корректировка» на разницу. Если нужно записать конкретный расход, лучше добавь его отдельной записью.','. Wallets will not change: a grey "Adjustment" for the difference appears in the journal. To record a specific expense, it is better to add it as a separate entry.')+'</div><label>'+L('ИТОГО ЗА МЕСЯЦ, ','MONTH TOTAL, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(r2(now)).replace('.',',')+'">'}
   else if(k==='goal'){var gi=goalInfo(it);cur=it.cur;
     h+='<div class="sub">'+L('Можно поправить всю сумму и то, сколько уже оплачено.','You can fix the total and how much is already paid.')+'</div><label>'+L('ВСЕГО НУЖНО, ','TOTAL NEEDED, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jT" inputmode="decimal" value="'+(it.target?String(it.target).replace('.',','):'')+'"><label>'+(it.type==='debt'?L('УЖЕ ВЕРНУЛА, ','ALREADY REPAID, '):L('УЖЕ ОПЛАЧЕНО, ','ALREADY PAID, '))+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(gi.paid).replace('.',',')+'">'}
   h+='<button class="btn" id="jS">'+L('Сохранить','Save')+'</button><button class="btn del" id="jC">'+L('Отмена','Cancel')+'</button>';
@@ -846,10 +846,10 @@ function detailSheet(k,id){
     h+='<div class="kv"><span>'+L('В общем балансе','In the total balance')+'</span><b><button class="chip sm'+(it.nb?'':' on')+'" id="dNB">'+(it.nb?L('выключен','off'):L('включён','on'))+'</button></b></div>';
     h+='<button class="btn" id="dGo">➡️ '+L('Перевести / потратить / отложить','Transfer / spend / set aside')+'</button>';
   }
-  if(k==='src'){var mi=(incSums('m0')[id])||{rub:0,aed:0};
-    h+='<div class="big">'+two(mi.rub,mi.aed)+'<i>'+L('за ','for ')+mname(ym(0))+'</i></div><button class="btn" id="dGo">➡️ '+L('Зачислить на кошелёк','Pay into a wallet')+'</button>'}
-  if(k==='cat'){var cs=catSums('m0')[id]||{rub:0,aed:0,n:0},cp=catSums('m1')[id]||{rub:0,aed:0};
-    h+='<div class="big">'+two(cs.rub,cs.aed)+'<i>'+L('за ','for ')+mname(ym(0))+' · '+cs.n+L(' трат',' items')+'</i></div>';
+  if(k==='src'){var mi=(incSums('m0c')[id])||{rub:0,aed:0};
+    h+='<div class="big">'+two(mi.rub,mi.aed)+'<i>'+mLbl(1)+'</i></div><button class="btn" id="dGo">➡️ '+L('Зачислить на кошелёк','Pay into a wallet')+'</button>'}
+  if(k==='cat'){var cs=catSums('m0c')[id]||{rub:0,aed:0,n:0},cp=catSums('m1c')[id]||{rub:0,aed:0};
+    h+='<div class="big">'+two(cs.rub,cs.aed)+'<i>'+mLbl(1)+' · '+cs.n+L(' трат',' items')+'</i></div>';
     if(cp.aed>0)h+='<div class="kv"><span>'+L('В прошлом месяце','Last month')+'</span><b>'+fmt(S.set.main==='AED'?cp.aed:cp.rub,S.set.main,true)+'</b></div>'}
   if(k==='goal'){
     var gi=goalInfo(it);
@@ -1013,7 +1013,7 @@ function settingsSheet(){
   h+='<label>'+L('ЯЗЫК','LANGUAGE')+'</label><div class="seg" id="sL"><button data-l="ru" class="'+(LANG==='ru'?'on':'')+'">Русский</button><button data-l="en" class="'+(LANG==='en'?'on':'')+'">English</button></div>';
   h+='<label>'+L('ВАЛЮТА ПЕРВОЙ СТРОКОЙ В ИТОГАХ','CURRENCY SHOWN FIRST')+'</label><div class="seg" id="sM"><button data-m="RUB" class="'+(S.set.main==='RUB'?'on':'')+'">₽ '+L('Рубли','Rubles')+'</button><button data-m="AED" class="'+(S.set.main==='AED'?'on':'')+'">AED '+L('Дирхамы','Dirhams')+'</button></div><div class="sub">'+L('Рубли и дирхамы показываются везде вместе, это только порядок.','Rubles and dirhams are always shown together; this only sets the order.')+'</div>';
   h+='<label>'+L('СКОЛЬКО НУЖНО НА ЦЕЛИ: СЧИТАТЬ','GOAL SAVINGS NEEDED: SHOW')+'</label><div class="seg" id="sP">'+['day','week','month'].map(function(p){return '<button data-per="'+p+'" class="'+((S.set.per||'day')===p?'on':'')+'">'+({day:L('В день','Per day'),week:L('В неделю','Per week'),month:L('В месяц','Per month')})[p]+'</button>'}).join('')+'</div>';
-  h+='<label>'+L('ПОКАЗЫВАТЬ ДОХОДЫ И РАСХОДЫ С ДАТЫ','SHOW INCOME AND SPENDING FROM')+'</label><div class="two"><input class="f" type="date" id="sFrom" value="'+(S.set.from||'')+'" max="'+today()+'" style="flex:3"><button class="btn alt sm" id="sFromX" style="flex:1.2;margin:0">'+L('Сбросить','Clear')+'</button></div><div class="sub">'+L('Всё, что раньше этой даты, не попадает в расходы, доходы, аналитику и журнал. Записи не удаляются, остатки на кошельках не меняются.','Anything earlier is left out of spending, income, analytics and the journal. Nothing is deleted and wallet balances do not change.')+'</div>';
+  h+='<label>'+L('НАЧАТЬ СЧЁТ НА ГЛАВНОМ ЭКРАНЕ С ДАТЫ','START COUNTING ON THE MAIN SCREEN FROM')+'</label><div class="two"><input class="f" type="date" id="sFrom" value="'+(S.set.from||'')+'" style="flex:3"><button class="btn alt sm" id="sFromX" style="flex:1.2;margin:0">'+L('Сбросить','Clear')+'</button></div><button class="btn alt sm" id="sFromT" style="margin-top:8px">'+L('С сегодняшнего дня','From today')+'</button><div class="sub">'+L('Суммы на значках доходов и расходов, верхняя строка, советы и окна категорий считаются только с этой даты. Журнал и аналитика (там можно выбрать любой период) показывают всё. Баланс не меняется.','Amounts on income and expense icons, the top line, tips and category windows count only from this date. The journal and analytics (pick any period there) show everything. The balance does not change.')+'</div>';
   h+='<div class="big" style="margin-top:14px"><b style="font-size:16px">💾 '+L('Резервная копия','Backup')+'</b><div class="sub" style="margin:4px 0 0">'+L('Данные хранятся только в этом телефоне. Копия это один архив (zip) со всем: кошельки, операции, цели и твои значки. ','Your data lives only on this phone. A backup is a single zip archive with everything: wallets, entries, goals and your icons. ')+(days==null?L('Копию ещё не делали.','No backup yet.'):L('Последняя копия: ','Last backup: ')+(days===0?L('сегодня','today'):days+L(' дн. назад',' d ago'))+'.')+'</div></div>';
   h+='<button class="btn" id="sE">'+L('Сохранить копию','Save backup')+'</button><button class="btn alt" id="sI">'+L('Загрузить копию','Load backup')+'</button><input type="file" id="sF" accept=".zip,.json,application/zip,application/json" hidden>';
   h+='<div class="big" style="margin-top:14px"><b style="font-size:16px">'+L('Курсы','Rates')+'</b><div class="sub" style="margin:4px 0 0">1 USD = '+fmt(R.RUB,'RUB')+' = '+fmt(R.AED,'AED')+'<br>'+(RI.live?L('На ','As of ')+fd(RI.date)+L('. Рыночный курс, обновляется раз в сутки.','. Market rate, updated daily.'):L('Примерный курс на ','Approximate rate for ')+fd(RI.date)+L(': свежий загрузить не удалось.',': could not load a fresh one.'))+L(' Сумма каждой операции хранится по курсу на день записи.',' Each entry keeps the rate of the day it was made.')+'</div></div><button class="btn alt sm" id="sR">'+L('Обновить курсы','Update rates')+'</button>';
@@ -1025,6 +1025,7 @@ function settingsSheet(){
   document.querySelectorAll('#sP button').forEach(function(b){b.onclick=function(){S.set.per=b.getAttribute('data-per');save();render();document.querySelectorAll('#sP button').forEach(function(x){x.classList.toggle('on',x===b)})}});
   $('sFrom').onchange=function(){S.set.from=$('sFrom').value||'';save();render()};
   $('sFromX').onclick=function(){S.set.from='';save();render();settingsSheet()};
+  $('sFromT').onclick=function(){S.set.from=today();save();render();settingsSheet()};
   $('sR').onclick=function(){loadRates(true).then(settingsSheet)};
   $('sE').onclick=backupZip;
   $('sI').onclick=function(){$('sF').value='';$('sF').click()};
@@ -1159,7 +1160,6 @@ function bind(){
   $('pg3').addEventListener('click',function(e){var b=e.target.closest('[data-op]');if(b){opSheet(b.getAttribute('data-op'));return}
     var f=e.target.closest('[data-jf]');if(f){jF=f.getAttribute('data-jf');pageJournal();return}
     if(e.target.closest('[data-jhide]')){jHide=!jHide;pageJournal();return}
-    if(e.target.closest('[data-jall]')){e.preventDefault();jAll=!jAll;pageJournal();return}
     if(e.target.id==='more'){jLimit+=60;pageJournal()}});
   $('sheet').addEventListener('click',function(e){var b=e.target.closest('[data-op]');if(b)opSheet(b.getAttribute('data-op'))});
   $('nav').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var i=+b.getAttribute('data-i');$('pages').scrollTo({left:i*$('pages').clientWidth,behavior:'smooth'})});
