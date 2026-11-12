@@ -40,6 +40,7 @@ button{cursor:pointer;font-family:inherit}
 .gdot{display:none;position:absolute;right:1px;top:1px;width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px #F6EFE6}
 .gdot.on{display:block}
 .strip{display:flex;border-radius:18px;padding:6px 2px}
+.cleanb{display:block;margin:7px auto 0;border:1px solid var(--line);background:rgba(255,255,255,.5);color:var(--ink);font:600 12.5px inherit;font-family:inherit;border-radius:999px;padding:7px 14px;cursor:pointer}.cleanb.on{background:rgba(126,107,184,.14);border-color:rgba(126,107,184,.35)}
 .tdy{font-size:12px;color:#8a8d9c;text-align:center;margin:6px 0 0;letter-spacing:.1px}
 .blk{flex:1;min-width:0;padding:0 10px;position:relative}
 .blk+.blk:before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;background:var(--line)}
@@ -241,7 +242,7 @@ button:focus-visible,.cell:focus-visible{outline:3px solid var(--ink);outline-of
     <button class="gear" id="gear" aria-label="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><i class="gdot" id="gdot"></i></button>
   </div>
   <div class="glass strip" id="stats"></div>
-  <div class="tdy" id="tdy"></div>
+  <div class="tdy" id="tdy"></div><button class="cleanb" id="cleanb"></button>
 </div>
 <div id="pages">
   <div class="page" id="pg0"></div>
@@ -455,18 +456,36 @@ function compute(){
 function free(w){return r2(D.bal[w.id]-D.res[w.id])}
 function total(fn,cur,all){return S.wal.reduce(function(s,w){return s+(w.nb&&!all?0:conv(fn(w),w.cur,cur))},0)}
 function ym(offset){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+(offset||0));return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)}
-function mLbl(w){var f=S.set.from;if(f&&f>ym(0)+'-01'){var q=f.split('-');return L('с ','from ')+q[2]+'.'+q[1]}return w?L('за ','for ')+mname(ym(0)):mname(ym(0))}
+function mLbl(w){var f=S.set.from;if(f){var q=f.split('-');return L('с ','from ')+q[2]+'.'+q[1]}return w?L('за ','for ')+mname(ym(0)):mname(ym(0))}
 function inPeriod(o,p){
-  var d=o.d;
-  if(p==='all')return true;
+  var d=o.d,f=S.set.from||'';
   if(p==='cust'){var r=S.set.rng||{};return (!r.a||d>=r.a)&&(!r.b||d<=r.b)}
-  if(p==='m0c')return d.slice(0,7)===ym(0)&&(!S.set.from||d>=S.set.from);
-  if(p==='m1c')return d.slice(0,7)===ym(-1)&&(!S.set.from||d>=S.set.from);
+  if(f&&d<f)return false;
+  if(p==='all')return true;
+  if(p==='m0c')return f?true:d.slice(0,7)===ym(0);
+  if(p==='m1c')return d.slice(0,7)===ym(-1);
   if(p==='m0')return d.slice(0,7)===ym(0);
   if(p==='m1')return d.slice(0,7)===ym(-1);
   if(p==='d7'||p==='d30'){var t=new Date();t.setDate(t.getDate()-(p==='d7'?6:29));return d>=dstr(t)&&d<=today()}
   return true;
 }
+function nextMon(){var d=new Date();d.setDate(d.getDate()+((8-d.getDay())%7));return dstr(d)}
+function cleanLbl(){var f=S.set.from;return f?'🧹 '+L('Считаю с ','Counting from ')+fd(f)+' · '+L('изменить','change'):'🧹 '+L('Начать с чистого листа','Start with a clean slate')}
+function cleanSheet(){var f=S.set.from||'',nm0=nextMon();
+  openSheet('<h2>🧹 '+L('Начать с чистого листа','Clean slate')+'</h2><div class="sub">'+L('Выбери дату, и расходы, доходы, категории, аналитика и журнал будут считаться только с неё. Дата остаётся, пока ты сама её не поменяешь. Всё старое хранится, его можно открыть кнопкой «Показать более ранние». Остатки на кошельках, цели и долги не меняются.','Pick a date: expenses, income, categories, analytics and the journal will count only from it. It stays until you change it. Older entries are kept and can be shown with "Show earlier". Wallet balances, goals and debts do not change.')+'</div><div class="chips"><button class="chip" id="cT">'+L('С сегодня','From today')+'</button><button class="chip" id="cM">'+L('С понедельника ','From Monday ')+fds(nm0)+'</button></div><label>'+L('ИЛИ ДРУГАЯ ДАТА','OR ANOTHER DATE')+'</label><input class="f" type="date" id="cD" value="'+f+'"><button class="btn" id="cOk">'+L('Сохранить','Save')+'</button><button class="btn alt" id="cAll">'+L('Показывать всё, без даты','Show everything')+'</button><button class="btn alt" id="cX">'+L('Отмена','Cancel')+'</button>');
+  function set(v){S.set.from=v||'';jAll=false;save();closeSheet();render()}
+  $('cT').onclick=function(){set(today())};$('cM').onclick=function(){set(nm0)};
+  $('cOk').onclick=function(){set($('cD').value)};$('cAll').onclick=function(){set('')};$('cX').onclick=closeSheet}
+var jAll=false,catR=null;
+function rangeTxt(r){var f=S.set.from||'';var a=r?r.a:f,b=r?r.b:'';return (a?L('с ','from ')+fd(a):L('с начала','from the start'))+' '+(b?L('по ','to ')+fd(b):L('по сегодня','to today'))}
+function catRangeSheet(k,id){var r=catR&&catR.id===id?catR:{a:S.set.from||'',b:''};
+  openSheet('<h2>📅 '+L('Период','Period')+'</h2><div class="sub">'+L('Только для этого окна. Общая дата начала не изменится.','Only for this window. The main start date does not change.')+'</div><div class="two"><div><label>'+L('С','FROM')+'</label><input class="f" type="date" id="qA" value="'+(r.a||'')+'"></div><div><label>'+L('ПО','TO')+'</label><input class="f" type="date" id="qB" value="'+(r.b||'')+'"></div></div><div class="chips" style="margin-top:10px"><button class="chip" data-q="m0">'+L('Этот месяц','This month')+'</button><button class="chip" data-q="m1">'+L('Прошлый','Last month')+'</button><button class="chip" data-q="all">'+L('Всё время','All time')+'</button><button class="chip" data-q="def">'+L('Как на главном','Same as main')+'</button></div><button class="btn" id="qOk">'+L('Показать','Show')+'</button><button class="btn alt" id="qX">'+L('Отмена','Cancel')+'</button>');
+  document.querySelectorAll('[data-q]').forEach(function(b){b.onclick=function(){var q=b.getAttribute('data-q'),a='',e='';
+    if(q==='m0'){a=ym(0)+'-01';e=''}else if(q==='m1'){var m=ym(-1).split('-'),last=new Date(+m[0],+m[1],0);a=ym(-1)+'-01';e=dstr(last)}else if(q==='def'){a=S.set.from||'';e=''}
+    $('qA').value=a;$('qB').value=e}});
+  $('qOk').onclick=function(){var a=$('qA').value,b=$('qB').value;if(a&&b&&a>b){var t=a;a=b;b=t}catR={id:id,a:a,b:b};detailSheet(k,id)};
+  $('qX').onclick=function(){detailSheet(k,id)}}
+function inR(o,r){return (!r.a||o.d>=r.a)&&(!r.b||o.d<=r.b)}
 function catSums(p){var m={};S.ops.forEach(function(o){if((o.t==='exp'||o.t==='cadj')&&inPeriod(o,p)){var c=m[o.x]||(m[o.x]={aed:0,rub:0,n:0});c.aed+=o.aed;c.rub+=o.rub;if(o.t==='exp')c.n++}});return m}
 function incSums(p){var m={};S.ops.forEach(function(o){if((o.t==='inc'||o.t==='iadj')&&inPeriod(o,p)){var c=m[o.x]||(m[o.x]={aed:0,rub:0});c.aed+=o.aed;c.rub+=o.rub}});return m}
 function goalInfo(g){
@@ -528,7 +547,7 @@ function stats(){
   var fr=rs>0.5?'<em class="fr">🔓 '+L('свободно','free')+' '+fmt(bal-rs,'RUB',true)+' · '+fmt(balA-rsA,'AED',true)+'</em>':'';
   var tr=0,ta=0,td=today();S.ops.forEach(function(o){if(o.t==='exp'&&o.d===td){var w=find('wal',o.w);tr+=o.rub!=null?o.rub:(w?conv(o.a,w.cur,'RUB'):0);ta+=o.aed!=null?o.aed:(w?conv(o.a,w.cur,'AED'):0)}});
   var tm=S.set.main==='AED',tp=[fmt(Math.round(tr),'RUB',true),fmt(Math.round(ta),'AED',true)];if(tm)tp.reverse();
-  $('tdy').textContent=L('Потрачено сегодня','Spent today')+': '+tp.join(' · ');
+  $('cleanb').textContent=cleanLbl();$('cleanb').classList.toggle('on',!!S.set.from);$('tdy').textContent=L('Потрачено сегодня','Spent today')+': '+tp.join(' · ');
   $('stats').innerHTML=blk(L('Баланс','Balance'),bal,balA,fr)+blk(L('Расходы','Spent')+' · '+mLbl(),er,ea);
 }
 function fit(){
@@ -706,6 +725,7 @@ function histRow(o,nod){
 }
 function jMatch(o){
   if(o.t==='skip')return false;
+  if(S.set.from&&!jAll&&o.d<S.set.from)return false;
   var adj=(o.t==='adj'||o.t==='cadj'||o.t==='iadj'||o.t==='gadj');
   if(jHide&&adj)return false;
   if(jF==='all')return true;
@@ -716,18 +736,21 @@ function jMatch(o){
   return true}
 function pageJournal(){
   var all=S.ops.slice().sort(function(a,b){return b.d.localeCompare(a.d)||(b.id>a.id?1:-1)});
-  var ops=all.filter(jMatch);
+  var ops=all.filter(jMatch),hid=0;
+  if(S.set.from&&!jAll)hid=all.filter(function(o){return o.t!=='skip'&&o.d<S.set.from}).length;
   var F=[['all',L('Все','All')],['inc',L('Доходы','Income')],['exp',L('Расходы','Expenses')],['tr',L('Переводы','Transfers')],['adj',L('Корректировки','Adjustments')]];
   var h='<div class="chips">'+F.map(function(f){return '<button class="chip'+(jF===f[0]?' on':'')+'" data-jf="'+f[0]+'">'+f[1]+'</button>'}).join('')+'<button class="chip'+(jHide?' on':'')+'" data-jhide="1">'+L('Без корректировок','Hide adjustments')+'</button></div>';
   if(!ops.length)h+='<div class="empty"><img src="logo.png" alt=""><br>'+L('Операций пока нет.','No entries yet.')+'</div>';
   var last='';ops.slice(0,jLimit).forEach(function(o){if(o.d!==last){h+='<div class="dayh">'+(o.d===today()?L('СЕГОДНЯ','TODAY'):fd(o.d))+'</div>';last=o.d}h+=histRow(o,true)});
+  if(S.set.from&&jAll)h+='<button class="btn alt sm" id="jhide2">'+L('Скрыть более ранние','Hide earlier')+'</button>';
+  else if(hid>0)h+='<button class="btn alt sm" id="jshow">'+L('Показать более ранние','Show earlier')+' ('+hid+')</button>';
   if(ops.length>jLimit)h+='<button class="btn alt sm" id="more">'+L('Показать ещё','Show more')+'</button>';
   $('pg3').innerHTML=h;
 }
 
 /* ================= листы ================= */
 function openSheet(h){$('sheet').innerHTML=h;$('bg').classList.add('show');$('sheet').scrollTop=0}
-function closeSheet(){$('bg').classList.remove('show');if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}
+function closeSheet(){catR=null;$('bg').classList.remove('show');if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}
 function kindTitle(k){return{src:L('источник дохода','income source'),wal:L('кошелёк','wallet'),goal:L('цель или долг','goal or debt'),cat:L('категорию','category')}[k]}
 function photoHTML(data){return typeof data==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(data)?'<img class="income-photo" src="'+esc(data)+'" alt="">':''}
 function compressPhoto(file){
@@ -819,7 +842,7 @@ function adjustSheet(k,id){
   if(k==='wal'){cur=it.cur;now=D.bal[id];
     h+='<div class="sub">'+L('Впиши, сколько на кошельке на самом деле. В журнале появится серая «Корректировка» на разницу. Это не доход и не расход.','Enter how much is really in the wallet. A grey "Adjustment" for the difference will appear in the journal. It is neither income nor an expense.')+'</div><label>'+L('СЕЙЧАС НА КОШЕЛЬКЕ, ','IN THE WALLET NOW, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(now).replace('.',',')+'">'}
   else if(k==='cat'||k==='src'){cur=S.set.main;var m=(k==='cat'?catSums('m0c'):incSums('m0c'))[id]||{rub:0,aed:0};now=cur==='AED'?m.aed:m.rub;
-    h+='<div class="sub">'+(k==='cat'?L('Впиши, сколько всего потрачено в этой категории ','Enter the total spent in this category '):L('Впиши, сколько всего получено из этого источника ','Enter the total received from this source '))+mLbl(1)+L('. Кошельки не изменятся: в журнале появится серая «Корректировка» на разницу. Если нужно записать конкретный расход, лучше добавь его отдельной записью.','. Wallets will not change: a grey "Adjustment" for the difference appears in the journal. To record a specific expense, it is better to add it as a separate entry.')+'</div><label>'+L('ИТОГО ЗА МЕСЯЦ, ','MONTH TOTAL, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(r2(now)).replace('.',',')+'">'}
+    h+='<div class="sub">'+(k==='cat'?L('Впиши, сколько всего потрачено в этой категории ','Enter the total spent in this category '):L('Впиши, сколько всего получено из этого источника ','Enter the total received from this source '))+mLbl(1)+L('. Кошельки не изменятся: в журнале появится серая «Корректировка» на разницу. Если нужно записать конкретный расход, лучше добавь его отдельной записью.','. Wallets will not change: a grey "Adjustment" for the difference appears in the journal. To record a specific expense, it is better to add it as a separate entry.')+'</div><label>'+L('ИТОГО ЗА ПЕРИОД, ','PERIOD TOTAL, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(r2(now)).replace('.',',')+'">'}
   else if(k==='goal'){var gi=goalInfo(it);cur=it.cur;
     h+='<div class="sub">'+L('Можно поправить всю сумму и то, сколько уже оплачено.','You can fix the total and how much is already paid.')+'</div><label>'+L('ВСЕГО НУЖНО, ','TOTAL NEEDED, ')+CUR[cur].f+' '+cur+'</label><input class="f" id="jT" inputmode="decimal" value="'+(it.target?String(it.target).replace('.',','):'')+'"><label>'+(it.type==='debt'?L('УЖЕ ВЕРНУЛА, ','ALREADY REPAID, '):L('УЖЕ ОПЛАЧЕНО, ','ALREADY PAID, '))+cur+'</label><input class="f" id="jA" inputmode="decimal" value="'+String(gi.paid).replace('.',',')+'">'}
   h+='<button class="btn" id="jS">'+L('Сохранить','Save')+'</button><button class="btn del" id="jC">'+L('Отмена','Cancel')+'</button>';
@@ -838,7 +861,7 @@ function adjustSheet(k,id){
 }
 
 /* --- детали --- */
-function opsOf(k,id,n){return S.ops.filter(function(o){return o.t!=='skip'&&(o.w===id||o.x===id)}).sort(function(a,b){return b.d.localeCompare(a.d)||(b.id>a.id?1:-1)}).slice(0,n||12)}
+function opsOf(k,id,n,r){var ff=S.set.from||'';return S.ops.filter(function(o){return o.t!=='skip'&&(o.w===id||o.x===id)&&(r?inR(o,r):(k==='wal'||k==='goal'||!ff||o.d>=ff))}).sort(function(a,b){return b.d.localeCompare(a.d)||(b.id>a.id?1:-1)}).slice(0,n||12)}
 function detailSheet(k,id){
   var it=find(k,id);if(!it)return;compute();
   var h='<div class="pvw">'+orbH(it,k)+'<div style="flex:1;min-width:0"><h2 style="margin:0">'+esc(nm(it))+'</h2><div class="sub" style="margin:0">'+({src:L('Источник дохода','Income source'),wal:L('Кошелёк · ','Wallet · ')+cn(it.cur||'RUB'),goal:it.type==='debt'?L('Долг','Debt'):L('Цель','Goal'),cat:L('Категория расходов','Expense category')})[k]+'</div></div></div>';
@@ -851,11 +874,12 @@ function detailSheet(k,id){
     h+='<div class="kv"><span>'+L('В общем балансе','In the total balance')+'</span><b><button class="chip sm'+(it.nb?'':' on')+'" id="dNB">'+(it.nb?L('выключен','off'):L('включён','on'))+'</button></b></div>';
     h+='<button class="btn" id="dGo">➡️ '+L('Перевести / потратить / отложить','Transfer / spend / set aside')+'</button>';
   }
-  if(k==='src'){var mi=(incSums('m0c')[id])||{rub:0,aed:0};
-    h+='<div class="big">'+two(mi.rub,mi.aed)+'<i>'+mLbl(1)+'</i></div><button class="btn" id="dGo">➡️ '+L('Зачислить на кошелёк','Pay into a wallet')+'</button>'}
-  if(k==='cat'){var cs=catSums('m0c')[id]||{rub:0,aed:0,n:0},cp=catSums('m1c')[id]||{rub:0,aed:0};
-    h+='<div class="big">'+two(cs.rub,cs.aed)+'<i>'+mLbl(1)+' · '+cs.n+L(' трат',' items')+'</i></div>';
-    if(cp.aed>0)h+='<div class="kv"><span>'+L('В прошлом месяце','Last month')+'</span><b>'+fmt(S.set.main==='AED'?cp.aed:cp.rub,S.set.main,true)+'</b></div>'}
+  var cr=null;
+  if(k==='src'||k==='cat'){cr=catR&&catR.id===id?catR:null;var rr=cr||{a:S.set.from||'',b:''},ty=k==='cat'?['exp','cadj']:['inc','iadj'],tr=0,ta=0,tn=0;
+    S.ops.forEach(function(o){if(o.x===id&&ty.indexOf(o.t)>=0&&inR(o,rr)){tr+=o.rub;ta+=o.aed;if(o.t===ty[0])tn++}});
+    h+='<div class="big">'+two(tr,ta)+'<i>'+rangeTxt(rr)+(k==='cat'?' · '+tn+L(' трат',' items'):'')+'</i></div><button class="btn alt sm" id="dRng">📅 '+L('Выбрать период','Pick a period')+'</button>';
+    if(k==='cat'&&!cr){var cp=catSums('m1c')[id]||{rub:0,aed:0};if(cp.aed>0)h+='<div class="kv"><span>'+L('В прошлом месяце','Last month')+'</span><b>'+fmt(S.set.main==='AED'?cp.aed:cp.rub,S.set.main,true)+'</b></div>'}
+    if(k==='src')h+='<button class="btn" id="dGo">➡️ '+L('Зачислить на кошелёк','Pay into a wallet')+'</button>'}
   if(k==='goal'){
     var gi=goalInfo(it);
     if(gi.nosum)h+='<div class="note">'+L('Укажи сумму цели: нажми «Изменить сумму».','Set the goal amount: tap "Edit amount".')+'</div>';
@@ -871,11 +895,12 @@ function detailSheet(k,id){
     h+='<label>'+L('ОПЛАТИТЬ ИЗ КОШЕЛЬКА','PAY FROM A WALLET')+'</label><select class="f" id="gPayW"><option value="">'+L('Выбери кошелёк…','Choose a wallet…')+'</option>'+S.wal.map(function(w){return '<option value="'+w.id+'">'+esc(nm(w))+' · '+fmt(D.bal[w.id],w.cur)+'</option>'}).join('')+'</select>';
   }
   h+='<button class="btn" id="dAdj" style="margin-top:10px">✎ '+L('Изменить сумму','Edit amount')+'</button>';
-  var hist=opsOf(k,id,10);
-  if(hist.length)h+='<div class="hist"><h3>'+L('ПОСЛЕДНИЕ ОПЕРАЦИИ','RECENT ENTRIES')+'</h3>'+hist.map(function(o){return histRow(o)}).join('')+'</div>';
+  var hist=opsOf(k,id,cr?60:10,cr||undefined);
+  if(hist.length)h+='<div class="hist"><h3>'+(cr?L('ОПЕРАЦИИ ЗА ПЕРИОД','ENTRIES IN PERIOD'):L('ПОСЛЕДНИЕ ОПЕРАЦИИ','RECENT ENTRIES'))+'</h3>'+hist.map(function(o){return histRow(o)}).join('')+'</div>';
   h+='<div class="two"><button class="btn alt" id="dEdit">'+(k==='goal'?L('Название, валюта, удалить','Name, currency, delete'):L('Название и значок','Name & icon'))+'</button><button class="btn alt" id="dPic">🖼 '+L('Своё фото','Own photo')+'</button></div><button class="btn del" id="dX">'+L('Закрыть','Close')+'</button>';
   openSheet(h);
   $('dPic').onclick=function(){pickImage(function(data){it.icon=data;save();render();detailSheet(k,id);toast(L('Картинка обновлена ✓','Picture updated ✓'))})};
+  if($('dRng'))$('dRng').onclick=function(){catRangeSheet(k,id)};
   $('dX').onclick=closeSheet;$('dEdit').onclick=function(){itemSheet(k,id)};$('dAdj').onclick=function(){adjustSheet(k,id)};
   if($('dNB'))$('dNB').onclick=function(){it.nb=!it.nb;save();render();detailSheet(k,id)};
   if($('dGo'))$('dGo').onclick=function(){closeSheet();startPick(k,id)};
@@ -1051,7 +1076,7 @@ function settingsSheet(){
   h+='<label>'+L('ЯЗЫК','LANGUAGE')+'</label><div class="seg" id="sL"><button data-l="ru" class="'+(LANG==='ru'?'on':'')+'">Русский</button><button data-l="en" class="'+(LANG==='en'?'on':'')+'">English</button></div>';
   h+='<label>'+L('ВАЛЮТА ПЕРВОЙ СТРОКОЙ В ИТОГАХ','CURRENCY SHOWN FIRST')+'</label><div class="seg" id="sM"><button data-m="RUB" class="'+(S.set.main==='RUB'?'on':'')+'">₽ '+L('Рубли','Rubles')+'</button><button data-m="AED" class="'+(S.set.main==='AED'?'on':'')+'">AED '+L('Дирхамы','Dirhams')+'</button></div><div class="sub">'+L('Рубли и дирхамы показываются везде вместе, это только порядок.','Rubles and dirhams are always shown together; this only sets the order.')+'</div>';
   h+='<label>'+L('СКОЛЬКО НУЖНО НА ЦЕЛИ: СЧИТАТЬ','GOAL SAVINGS NEEDED: SHOW')+'</label><div class="seg" id="sP">'+['day','week','month'].map(function(p){return '<button data-per="'+p+'" class="'+((S.set.per||'day')===p?'on':'')+'">'+({day:L('В день','Per day'),week:L('В неделю','Per week'),month:L('В месяц','Per month')})[p]+'</button>'}).join('')+'</div>';
-  h+='<label>'+L('НАЧАТЬ СЧЁТ НА ГЛАВНОМ ЭКРАНЕ С ДАТЫ','START COUNTING ON THE MAIN SCREEN FROM')+'</label><div class="two"><input class="f" type="date" id="sFrom" value="'+(S.set.from||'')+'" style="flex:3"><button class="btn alt sm" id="sFromX" style="flex:1.2;margin:0">'+L('Сбросить','Clear')+'</button></div><button class="btn alt sm" id="sFromT" style="margin-top:8px">'+L('С сегодняшнего дня','From today')+'</button><div class="sub">'+L('Суммы на значках доходов и расходов, верхняя строка, советы и окна категорий считаются только с этой даты. Журнал и аналитика (там можно выбрать любой период) показывают всё. Баланс не меняется.','Amounts on income and expense icons, the top line, tips and category windows count only from this date. The journal and analytics (pick any period there) show everything. The balance does not change.')+'</div>';
+  h+='<label>'+L('НАЧАТЬ СЧЁТ НА ГЛАВНОМ ЭКРАНЕ С ДАТЫ','START COUNTING ON THE MAIN SCREEN FROM')+'</label><div class="two"><input class="f" type="date" id="sFrom" value="'+(S.set.from||'')+'" style="flex:3"><button class="btn alt sm" id="sFromX" style="flex:1.2;margin:0">'+L('Сбросить','Clear')+'</button></div><button class="btn alt sm" id="sFromT" style="margin-top:8px">'+L('С сегодняшнего дня','From today')+'</button><div class="sub">'+L('Расходы, доходы, категории, аналитика, журнал и советы считаются только с этой даты, старое скрыто, но хранится. В аналитике «Свой период» и в окне категории можно посмотреть любые даты. Баланс не меняется.','Expenses, income, categories, analytics, the journal and tips count only from this date; older entries are hidden but kept. Use "Custom period" in analytics or a category window to see any dates. The balance does not change.')+'</div>';
   h+='<div class="big" style="margin-top:14px"><b style="font-size:16px">💾 '+L('Резервная копия','Backup')+'</b><div class="sub" style="margin:4px 0 0">'+L('Данные хранятся только в этом телефоне. Копия это один архив (zip) со всем: кошельки, операции, цели и твои значки. ','Your data lives only on this phone. A backup is a single zip archive with everything: wallets, entries, goals and your icons. ')+(days==null?L('Копию ещё не делали.','No backup yet.'):L('Последняя копия: ','Last backup: ')+(days===0?L('сегодня','today'):days+L(' дн. назад',' d ago'))+'.')+'</div></div>';
   h+='<button class="btn" id="sE">'+L('Сохранить копию','Save backup')+'</button><button class="btn alt" id="sI">'+L('Загрузить копию','Load backup')+'</button><input type="file" id="sF" accept=".zip,.json,application/zip,application/json" hidden>';
   h+='<div class="big" style="margin-top:14px"><b style="font-size:16px">'+L('Курсы','Rates')+'</b><div class="sub" style="margin:4px 0 0">1 USD = '+fmt(R.RUB,'RUB')+' = '+fmt(R.AED,'AED')+'<br>'+(RI.live?L('На ','As of ')+fd(RI.date)+L('. Рыночный курс, обновляется раз в сутки.','. Market rate, updated daily.'):L('Примерный курс на ','Approximate rate for ')+fd(RI.date)+L(': свежий загрузить не удалось.',': could not load a fresh one.'))+L(' Сумма каждой операции хранится по курсу на день записи.',' Each entry keeps the rate of the day it was made.')+'</div></div><button class="btn alt sm" id="sR">'+L('Обновить курсы','Update rates')+'</button>';
@@ -1191,14 +1216,16 @@ function bind(){
   });
   $('pg0').addEventListener('scroll',function(e){var t=e.target;if(t&&t.id==='pager'){var i=Math.round(t.scrollLeft/t.clientWidth);document.querySelectorAll('#dots span').forEach(function(s,j){s.classList.toggle('on',i===j)})}},true);
   $('bannerX').onclick=function(){if(ord)setOrd(false);else endPick()};
-  $('gear').onclick=settingsSheet;
+  $('gear').onclick=settingsSheet;$('cleanb').onclick=cleanSheet;
   $('lang').onclick=function(){S.set.lang=LANG==='ru'?'en':'ru';save();render();if(S.set.lang==='en')fillTranslations()};
   $('bg').addEventListener('click',function(e){if(e.target===$('bg'))closeSheet()});
   $('pg1').addEventListener('click',function(e){var b=e.target.closest('[data-p]');if(b){var np=b.getAttribute('data-p');if(np==='cust'){rangeSheet();return}period=np;pageAnalytics();return}var p=e.target.closest('[data-per]');if(p){S.set.per=p.getAttribute('data-per');save();render()}});
   $('pg3').addEventListener('click',function(e){var b=e.target.closest('[data-op]');if(b){opSheet(b.getAttribute('data-op'));return}
     var f=e.target.closest('[data-jf]');if(f){jF=f.getAttribute('data-jf');pageJournal();return}
     if(e.target.closest('[data-jhide]')){jHide=!jHide;pageJournal();return}
-    if(e.target.id==='more'){jLimit+=60;pageJournal()}});
+    if(e.target.id==='more'){jLimit+=60;pageJournal()}
+    if(e.target.id==='jshow'){jAll=true;pageJournal()}
+    if(e.target.id==='jhide2'){jAll=false;pageJournal()}});
   $('sheet').addEventListener('click',function(e){var b=e.target.closest('[data-op]');if(b)opSheet(b.getAttribute('data-op'))});
   $('nav').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var i=+b.getAttribute('data-i');$('pages').scrollTo({left:i*$('pages').clientWidth,behavior:'smooth'})});
   var sc;$('pages').addEventListener('scroll',function(){clearTimeout(sc);sc=setTimeout(function(){var i=Math.round($('pages').scrollLeft/$('pages').clientWidth);document.querySelectorAll('#nav button').forEach(function(b,j){b.classList.toggle('on',i===j)})},60)});
